@@ -24,3 +24,6 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# Files
+file.txt
