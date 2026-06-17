@@ -29,7 +29,7 @@
 
     <div class="hero-buttons">
         <a href="{{ url_for('register') }}" class="btn btn-primary">Create free account</a>
-        <a href="#" class="btn btn-secondary">See how it works</a>
+        <a href="#" class="btn btn-secondary" id="how-it-works-btn">See how it works</a>
     </div>
 
     <div class="dashboard-card">
@@ -118,5 +118,63 @@
         <a href="{{ url_for('register') }}" class="btn-primary">Create free account</a>
     </div>
 </section>
+
+<div class="video-modal" id="video-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="How Spendly works">
+    <div class="video-modal-backdrop" data-close-modal></div>
+    <div class="video-modal-content">
+        <button type="button" class="video-modal-close" data-close-modal aria-label="Close video">&times;</button>
+        <div class="video-modal-frame">
+            <iframe id="video-modal-iframe"
+                    src=""
+                    data-src="https://www.youtube.com/embed/aqz-KE-bpKQ"
+                    title="How Spendly works"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modal = document.getElementById('video-modal');
+    var iframe = document.getElementById('video-modal-iframe');
+    var openBtn = document.getElementById('how-it-works-btn');
+    if (!modal || !iframe || !openBtn) return;
+
+    function openModal() {
+        if (!iframe.dataset.loaded) {
+            iframe.src = iframe.getAttribute('data-src') + '&autoplay=1';
+            iframe.dataset.loaded = '1';
+        }
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        iframe.src = '';
+        delete iframe.dataset.loaded;
+    }
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal();
+    });
+
+    modal.querySelectorAll('[data-close-modal]').forEach(function (el) {
+        el.addEventListener('click', closeModal);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+})();
+</script>
 
 {% endblock %}
