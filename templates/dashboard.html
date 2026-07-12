@@ -8,6 +8,7 @@
         <div class="auth-card" style="text-align: center;">
             <h1 class="auth-title">Welcome, {{ name }}</h1>
             <p class="auth-subtitle">Your Spendly dashboard is on its way.</p>
+            <a href="{{ url_for('profile') }}" class="btn-submit">View profile</a>
             <a href="{{ url_for('logout') }}" class="btn-submit">Log out</a>
         </div>
     </div>
