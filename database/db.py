@@ -130,3 +130,25 @@ def seed_db():
         conn.commit()
     finally:
         conn.close()
+
+
+def get_user_by_email(email):
+    """Look up a user by their (already-normalised) email address.
+
+    The caller is responsible for trimming and lowercasing the email before
+    passing it in; this function does no normalization so it stays a
+    single-purpose lookup. Returns a sqlite3.Row with id, name, email,
+    password_hash, and created_at, or None if no row matches.
+
+    The connection is opened via get_db() so row_factory and
+    PRAGMA foreign_keys are consistent with the rest of the data layer.
+    """
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT id, name, email, password_hash, created_at "
+            "FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+    finally:
+        conn.close()
