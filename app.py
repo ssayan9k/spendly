@@ -1,9 +1,9 @@
 import sqlite3
 
 from flask import Flask, redirect, render_template, request, session, url_for
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import get_db, init_db, seed_db
+from database.db import get_db, get_user_by_email, init_db, seed_db
 
 app = Flask(__name__)
 # Required for `session` to sign cookies. Dev-only value; swap for a real
@@ -93,8 +93,45 @@ def dashboard():
     return render_template("dashboard.html", name=row["name"])
 
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        # Do NOT strip the password — leading/trailing spaces are meaningful
+        # and a real user may intentionally have one.
+        password = request.form.get("password") or ""
+
+        # --- validation (single error, in priority order) -------------- #
+        if not email:
+            error = "Please enter your email and password."
+        elif not password:
+            error = "Please enter your email and password."
+        else:
+            error = None
+
+        if error:
+            return render_template("login.html", error=error)
+
+        # --- look up + verify ------------------------------------------- #
+        # Same generic error for "no such user" and "wrong password" so the
+        # response does not leak which accounts exist (anti-enumeration).
+        user = get_user_by_email(email)
+        if user is None or not check_password_hash(user["password_hash"], password):
+            return render_template(
+                "login.html",
+                error="Invalid email or password.",
+            )
+
+        session["user_id"] = user["id"]
+        return redirect(url_for("dashboard"))
+
+    # GET — if the user is already signed in, send them straight to the
+    # dashboard rather than re-rendering the sign-in form. /logout stays
+    # accessible at all times because the navbar and dashboard's "Log out"
+    # actions both link to it.
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+
     return render_template("login.html")
 
 
@@ -114,7 +151,10 @@ def privacy():
 
 @app.route("/logout")
 def logout():
-    return "Logout — coming in Step 3"
+    # Safe to hit while logged out: session.clear() on an empty session is
+    # a no-op, so this never raises.
+    session.clear()
+    return redirect(url_for("landing"))
 
 
 @app.route("/profile")
