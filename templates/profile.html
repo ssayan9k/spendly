@@ -3,30 +3,84 @@
 {% block title %}Your profile — Spendly{% endblock %}
 
 {% block content %}
-<section class="auth-section">
-    <div class="auth-container">
+<section class="profile-section">
+  <div class="profile-inner">
 
-        <div class="auth-header">
-            <h1 class="auth-title">Your profile</h1>
-            <p class="auth-subtitle">Account details for {{ name }}</p>
+    <!-- 1. User info card -->
+    <header class="profile-card profile-header">
+      <div class="profile-header-text">
+        <h1 class="profile-title">Your profile</h1>
+        <p class="profile-subtitle">Account overview for {{ name }}</p>
+      </div>
+      <div class="profile-header-user">
+        <div class="profile-avatar">{{ avatar_initials }}</div>
+        <div class="profile-header-meta">
+          <p class="profile-name">{{ name }}</p>
+          <p class="profile-email">{{ email }}</p>
+          <p class="profile-since">Member since {{ member_since }}</p>
         </div>
+      </div>
+    </header>
 
-        <div class="auth-card">
-            <div class="form-group">
-                <label>Name</label>
-                <div class="form-input">{{ name }}</div>
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <div class="form-input">{{ email }}</div>
-            </div>
-            <div class="form-group">
-                <label>Member since</label>
-                <div class="form-input">{{ member_since }}</div>
-            </div>
-            <a href="{{ url_for('dashboard') }}" class="btn-submit">Back to dashboard</a>
+    <!-- 2. Summary stats row -->
+    <section class="profile-stats" aria-label="Summary statistics">
+      {% for stat in stats %}
+      <div class="profile-card profile-stat">
+        <p class="profile-stat-label">{{ stat.label }}</p>
+        <p class="profile-stat-value">{{ stat.value }}</p>
+      </div>
+      {% endfor %}
+    </section>
+
+    <!-- 3. Transaction history + Category breakdown -->
+    <section class="profile-grid">
+
+      <div class="profile-card">
+        <h2 class="profile-card-title">Transaction history</h2>
+        <p class="profile-card-subtitle">Your most recent expenses</p>
+        <div class="profile-table-wrap">
+          <table class="profile-table">
+            <thead>
+              <tr>
+                <th class="col-date">Date</th>
+                <th class="col-desc">Description</th>
+                <th class="col-cat">Category</th>
+                <th class="col-amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tx in transactions %}
+              <tr>
+                <td class="col-date">{{ tx.date }}</td>
+                <td class="col-desc">{{ tx.description }}</td>
+                <td class="col-cat">
+                  <span class="profile-badge profile-badge--{{ tx.category|lower }}">{{ tx.category }}</span>
+                </td>
+                <td class="col-amt">{{ tx.amount }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+      </div>
 
-    </div>
+      <div class="profile-card">
+        <h2 class="profile-card-title">Category breakdown</h2>
+        <p class="profile-card-subtitle">Where your money is going</p>
+        <ul class="profile-category-list">
+          {% for cat in categories %}
+          <li class="profile-category-row">
+            <span class="profile-category-name">
+              <span class="profile-badge profile-badge--{{ cat.name|lower }}">{{ cat.name }}</span>
+            </span>
+            <span class="profile-category-total">{{ cat.total }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </section>
+
+  </div>
 </section>
 {% endblock %}

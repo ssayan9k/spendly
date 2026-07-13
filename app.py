@@ -171,11 +171,54 @@ def profile():
 
     # Only pass safe fields to the template — never expose password_hash.
     member_since = user["created_at"].split(" ")[0]  # "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DD"
+
+    # ------------------------------------------------------------------ #
+    # Hardcoded mock data for Spec 04.                                    #
+    # Step 5 will replace these literals with real DB queries.            #
+    # Categories are the 7 fixed values seeded by database/db.py.         #
+    # ------------------------------------------------------------------ #
+    profile_stats = [
+        {"label": "Total spent",  "value": "₹7,471.04"},
+        {"label": "Transactions", "value": "42"},
+        {"label": "Top category", "value": "Food"},
+    ]
+
+    profile_transactions = [
+        {"date": "2026-07-12", "description": "Morning coffee",     "category": "Food",          "amount": "₹8.75"},
+        {"date": "2026-07-10", "description": "Groceries",          "category": "Shopping",      "amount": "₹67.80"},
+        {"date": "2026-07-08", "description": "Movie tickets",      "category": "Entertainment", "amount": "₹15.00"},
+        {"date": "2026-07-05", "description": "Pharmacy",           "category": "Health",        "amount": "₹32.40"},
+        {"date": "2026-07-03", "description": "Internet bill",      "category": "Bills",         "amount": "₹89.99"},
+        {"date": "2026-07-01", "description": "Monthly metro pass", "category": "Transport",     "amount": "₹45.00"},
+        {"date": "2026-06-28", "description": "Lunch with team",    "category": "Food",          "amount": "₹12.50"},
+        {"date": "2026-06-25", "description": "Miscellaneous",      "category": "Other",         "amount": "₹25.00"},
+    ]
+
+    profile_categories = [
+        {"name": "Food",          "total": "₹1,248.50"},
+        {"name": "Bills",         "total": "₹1,890.00"},
+        {"name": "Transport",     "total": "₹945.20"},
+        {"name": "Shopping",      "total": "₹1,532.75"},
+        {"name": "Entertainment", "total": "₹720.00"},
+        {"name": "Health",        "total": "₹680.59"},
+        {"name": "Other",         "total": "₹454.00"},
+    ]
+
+    # Avatar initials: first letter of the first two words of the name,
+    # uppercased. Falls back to a single letter for one-word names.
+    avatar_initials = "".join(
+        part[0] for part in (user["name"].split() + ["E"])[:2]
+    ).upper()[:2]
+
     return render_template(
         "profile.html",
         name=user["name"],
         email=user["email"],
         member_since=member_since,
+        avatar_initials=avatar_initials,
+        stats=profile_stats,
+        transactions=profile_transactions,
+        categories=profile_categories,
     )
 
 
