@@ -3,7 +3,7 @@ import sqlite3
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import get_db, get_user_by_email, init_db, seed_db
+from database.db import get_db, get_user_by_email, get_user_by_id, init_db, seed_db
 
 app = Flask(__name__)
 # Required for `session` to sign cookies. Dev-only value; swap for a real
@@ -159,7 +159,24 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    user_id = session.get("user_id")
+    if user_id is None:
+        return redirect(url_for("login"))
+
+    user = get_user_by_id(user_id)
+    if user is None:
+        # Defensive: session points at a deleted user. Clear and redirect.
+        session.clear()
+        return redirect(url_for("login"))
+
+    # Only pass safe fields to the template — never expose password_hash.
+    member_since = user["created_at"].split(" ")[0]  # "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DD"
+    return render_template(
+        "profile.html",
+        name=user["name"],
+        email=user["email"],
+        member_since=member_since,
+    )
 
 
 @app.route("/expenses/add")

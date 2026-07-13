@@ -152,3 +152,24 @@ def get_user_by_email(email):
         ).fetchone()
     finally:
         conn.close()
+
+
+def get_user_by_id(user_id):
+    """Look up a user by primary key.
+
+    Returns a sqlite3.Row with id, name, email, password_hash, and created_at,
+    or None if no row matches. The caller is responsible for any defensive
+    handling (e.g. clearing a stale session if the row has been deleted).
+
+    The connection is opened via get_db() so row_factory and
+    PRAGMA foreign_keys are consistent with the rest of the data layer.
+    """
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT id, name, email, password_hash, created_at "
+            "FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+    finally:
+        conn.close()
