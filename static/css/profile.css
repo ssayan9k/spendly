@@ -1,0 +1,320 @@
+/* ------------------------------------------------------------------ */
+/* Profile page                                                        */
+/* ------------------------------------------------------------------ */
+/* Page-specific styles for /profile. Every selector is namespaced     */
+/* with `profile-` so nothing leaks into other pages.                  */
+/* All colors reference existing :root tokens from style.css —         */
+/* no new hex values are introduced.                                   */
+
+.profile-section {
+    background: var(--paper);
+    padding: 3rem 2rem;
+}
+
+.profile-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Card primitive                                                      */
+/* ------------------------------------------------------------------ */
+
+.profile-card {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Section 1 — User info card (header)                                 */
+/* ------------------------------------------------------------------ */
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.profile-title {
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    line-height: 1.1;
+    color: var(--ink);
+}
+
+.profile-subtitle {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    margin-top: 0.5rem;
+}
+
+.profile-header-user {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
+}
+
+.profile-header-meta {
+    text-align: right;
+}
+
+.profile-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin-bottom: 0.15rem;
+}
+
+.profile-email {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+}
+
+.profile-since {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.4rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Section 2 — Summary stats row                                       */
+/* ------------------------------------------------------------------ */
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.profile-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.profile-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    font-weight: 500;
+}
+
+.profile-stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--ink);
+    font-family: var(--font-body);
+}
+
+/* ------------------------------------------------------------------ */
+/* Section 3 — Transaction history + Category breakdown (grid)         */
+/* ------------------------------------------------------------------ */
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.profile-card-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+}
+
+.profile-card-subtitle {
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    margin-bottom: 1.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Transaction history table                                           */
+/* ------------------------------------------------------------------ */
+
+.profile-table-wrap {
+    overflow-x: auto;
+}
+
+.profile-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.profile-table thead th {
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.profile-table tbody td {
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+}
+
+.profile-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.col-date {
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    width: 110px;
+}
+
+.col-desc {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.col-cat {
+    width: 140px;
+}
+
+.col-amt {
+    text-align: right;
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Category badges                                                     */
+/* ------------------------------------------------------------------ */
+
+.profile-badge {
+    display: inline-block;
+    padding: 0.2rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    background: var(--accent-light);
+    color: var(--accent);
+    text-transform: capitalize;
+}
+
+.profile-badge--food {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.profile-badge--transport {
+    background: var(--accent-2-light);
+    color: var(--accent-2);
+}
+
+.profile-badge--bills {
+    background: var(--paper-warm);
+    color: var(--ink-soft);
+}
+
+.profile-badge--health {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.profile-badge--entertainment {
+    background: var(--paper-warm);
+    color: var(--accent-2);
+}
+
+.profile-badge--shopping {
+    background: var(--accent-light);
+    color: var(--ink-soft);
+}
+
+.profile-badge--other {
+    background: var(--border-soft);
+    color: var(--ink-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Category breakdown list                                             */
+/* ------------------------------------------------------------------ */
+
+.profile-category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.profile-category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.profile-category-row:last-child {
+    border-bottom: none;
+}
+
+.profile-category-name {
+    flex: 0 0 auto;
+}
+
+.profile-category-total {
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+    .profile-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+    .profile-stats { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .profile-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+    .profile-header-meta { text-align: left; }
+}
