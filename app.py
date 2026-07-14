@@ -3,7 +3,17 @@ import sqlite3
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import get_db, get_user_by_email, get_user_by_id, init_db, seed_db
+from database.db import (
+    CATEGORIES,
+    get_category_totals,
+    get_db,
+    get_expense_stats,
+    get_recent_expenses,
+    get_user_by_email,
+    get_user_by_id,
+    init_db,
+    seed_db,
+)
 
 app = Flask(__name__)
 # Required for `session` to sign cookies. Dev-only value; swap for a real
@@ -173,36 +183,21 @@ def profile():
     member_since = user["created_at"].split(" ")[0]  # "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DD"
 
     # ------------------------------------------------------------------ #
-    # Hardcoded mock data for Spec 04.                                    #
-    # Step 5 will replace these literals with real DB queries.            #
-    # Categories are the 7 fixed values seeded by database/db.py.         #
+    # Real DB-driven data (Spec 05). Each section is built by a helper    #
+    # in app.py that wraps a query in database/db.py. Three subagents     #
+    # own those helpers in disjoint zones below; do NOT edit these lines. #
     # ------------------------------------------------------------------ #
-    profile_stats = [
-        {"label": "Total spent",  "value": "₹7,471.04"},
-        {"label": "Transactions", "value": "42"},
-        {"label": "Top category", "value": "Food"},
-    ]
+    # >>> SUBAGENT_1_STATS_ZONE_START
+    profile_stats = _format_stats(get_expense_stats(user_id))
+    # >>> SUBAGENT_1_STATS_ZONE_END
 
-    profile_transactions = [
-        {"date": "2026-07-12", "description": "Morning coffee",     "category": "Food",          "amount": "₹8.75"},
-        {"date": "2026-07-10", "description": "Groceries",          "category": "Shopping",      "amount": "₹67.80"},
-        {"date": "2026-07-08", "description": "Movie tickets",      "category": "Entertainment", "amount": "₹15.00"},
-        {"date": "2026-07-05", "description": "Pharmacy",           "category": "Health",        "amount": "₹32.40"},
-        {"date": "2026-07-03", "description": "Internet bill",      "category": "Bills",         "amount": "₹89.99"},
-        {"date": "2026-07-01", "description": "Monthly metro pass", "category": "Transport",     "amount": "₹45.00"},
-        {"date": "2026-06-28", "description": "Lunch with team",    "category": "Food",          "amount": "₹12.50"},
-        {"date": "2026-06-25", "description": "Miscellaneous",      "category": "Other",         "amount": "₹25.00"},
-    ]
+    # >>> SUBAGENT_2_TRANSACTIONS_ZONE_START
+    profile_transactions = _format_transactions(get_recent_expenses(user_id))
+    # >>> SUBAGENT_2_TRANSACTIONS_ZONE_END
 
-    profile_categories = [
-        {"name": "Food",          "total": "₹1,248.50"},
-        {"name": "Bills",         "total": "₹1,890.00"},
-        {"name": "Transport",     "total": "₹945.20"},
-        {"name": "Shopping",      "total": "₹1,532.75"},
-        {"name": "Entertainment", "total": "₹720.00"},
-        {"name": "Health",        "total": "₹680.59"},
-        {"name": "Other",         "total": "₹454.00"},
-    ]
+    # >>> SUBAGENT_3_CATEGORIES_ZONE_START
+    profile_categories = _format_categories(get_category_totals(user_id))
+    # >>> SUBAGENT_3_CATEGORIES_ZONE_END
 
     # Avatar initials: first letter of the first two words of the name,
     # uppercased. Falls back to a single letter for one-word names.
@@ -235,6 +230,91 @@ def edit_expense(id):
 @app.route("/expenses/<int:id>/delete")
 def delete_expense(id):
     return "Delete expense — coming in Step 9"
+
+
+# ------------------------------------------------------------------ #
+# Profile helpers (Spec 05)                                            #
+# One helper per page section, owned by one subagent each.             #
+# All SQL lives in database/db.py; these helpers only format results. #
+# ------------------------------------------------------------------ #
+
+# === AGENT_1_HELPER ===
+def _format_stats(stats_row):
+    """Format the raw get_expense_stats() row into the stats list the template expects.
+
+    Returns:
+        list[dict] — exactly three entries with keys "label" and "value":
+            [{"label": "Total spent",  "value": "₹X,XXX.XX"},
+             {"label": "Transactions", "value": "N"},
+             {"label": "Top category", "value": "<category>"}]
+
+    Rules:
+        - Currency: f"₹{amount:,.2f}" — renders 0.00, not 0
+        - Top category: when stats_row["top_category"] is None, render "—"
+          (U+2014 EM DASH), matching the spec's empty-state wording
+        - Transaction count: integer, no thousands separator
+    """
+    top_category = stats_row["top_category"]
+    return [
+        {"label": "Total spent",  "value": f"₹{stats_row['total_spent']:,.2f}"},
+        {"label": "Transactions", "value": str(stats_row["transaction_count"])},
+        {"label": "Top category", "value": top_category if top_category is not None else "—"},
+    ]
+
+
+# === AGENT_2_HELPER ===
+def _format_transactions(rows):
+    """Format raw expense rows into the transaction list the template expects.
+
+    Returns:
+        list[dict] where each entry has keys:
+            {"date": "YYYY-MM-DD",
+             "description": str,  # "" when the row's description is None
+             "category": str,
+             "amount": "₹X,XXX.XX"}  # f"₹{amount:,.2f}"
+
+    Returns [] (not None) when the user has no expenses, so the template
+    renders an empty transaction history cleanly. The date is taken as-is
+    from the DB (already stored as YYYY-MM-DD by the seed and add routes).
+    """
+    return [
+        {
+            "date": row["date"],
+            "description": row["description"] if row["description"] is not None else "",
+            "category": row["category"],
+            "amount": f"₹{row['amount']:,.2f}",
+        }
+        for row in rows
+    ]
+
+
+# === AGENT_3_HELPER ===
+
+
+def _format_categories(rows):
+    """Format raw category rows into the 7-row breakdown list the template expects.
+
+    Always returns one entry per CATEGORIES constant value, in the constant's
+    declared order, with `₹0.00` for any category not present in `rows`.
+    This guarantees the breakdown list is visually complete even for a
+    brand-new user with no expenses.
+
+    Returns:
+        list[dict] where each entry has keys:
+            {"name": str,    # category name from CATEGORIES
+             "total": "₹X,XXX.XX"}  # f"₹{amount:,.2f}"
+
+    Implementation: build a dict {category: total} from `rows` (coerce
+    missing amounts to 0.0), then iterate CATEGORIES in order and emit one
+    formatted dict per category. Length of returned list is always
+    len(CATEGORIES) (7).
+    """
+    totals_by_category = {row["category"]: float(row["total"] or 0.0) for row in rows}
+    return [
+        {"name": category, "total": f"₹{totals_by_category.get(category, 0.0):,.2f}"}
+        for category in CATEGORIES
+    ]
+
 
 
 if __name__ == "__main__":

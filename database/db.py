@@ -12,6 +12,20 @@ from datetime import date
 
 from werkzeug.security import generate_password_hash
 
+# Fixed set of expense categories. Single source of truth for the 7 valid
+# values — used by the seed, the category breakdown, and (later) the add
+# / edit expense forms. Order matters: the breakdown list is rendered in
+# this order so a user always sees the same shape.
+CATEGORIES = (
+    "Food",
+    "Transport",
+    "Bills",
+    "Health",
+    "Entertainment",
+    "Shopping",
+    "Other",
+)
+
 # Database file lives at the project root, next to app.py.
 # Path: <this file>/../expense_tracker.db
 DB_PATH = os.path.join(
@@ -173,3 +187,95 @@ def get_user_by_id(user_id):
         ).fetchone()
     finally:
         conn.close()
+
+
+# === AGENT_1_DB ===
+def get_expense_stats(user_id):
+    """Aggregate total spent, transaction count, and top category for a user.
+
+    Returns a sqlite3.Row with keys:
+        - total_spent: float (sum of amount, or 0.0 if no expenses)
+        - transaction_count: int (COUNT(*), or 0)
+        - top_category: str or None (category with highest SUM(amount);
+          ties broken alphabetically via ORDER BY total DESC, category ASC;
+          None when the user has zero expenses)
+
+    Opens its own connection via get_db() and closes it before returning.
+    """
+    conn = get_db()
+    try:
+        row = conn.execute(
+            """
+            SELECT
+                COALESCE(SUM(amount), 0.0) AS total_spent,
+                COUNT(*)                    AS transaction_count,
+                (
+                    SELECT category
+                    FROM expenses
+                    WHERE user_id = ?
+                    GROUP BY category
+                    ORDER BY SUM(amount) DESC, category ASC
+                    LIMIT 1
+                ) AS top_category
+            FROM expenses
+            WHERE user_id = ?
+            """,
+            (user_id, user_id),
+        ).fetchone()
+        return row
+    finally:
+        conn.close()
+
+
+# === AGENT_2_DB ===
+def get_recent_expenses(user_id, limit=8):
+    """Return the user's `limit` most recent expenses.
+
+    Returns:
+        list[sqlite3.Row] with columns id, amount, category, date, description,
+        ordered by date DESC, id DESC (most recent first). Returns an empty
+        list (not None) when the user has no expenses.
+
+    Opens its own connection via get_db() and closes it before returning.
+    """
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT id, amount, category, date, description "
+            "FROM expenses WHERE user_id = ? "
+            "ORDER BY date DESC, id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+        return list(rows)
+    finally:
+        conn.close()
+
+
+# === AGENT_3_DB ===
+
+
+def get_category_totals(user_id):
+    """Return per-category spend for a user, ordered for deterministic display.
+
+    Returns:
+        list[sqlite3.Row] with columns (category, total) where total is
+        SUM(amount) for that category. Categories with no expenses for
+        the user are NOT included in the result — the caller is
+        responsible for merging with the CATEGORIES constant to render
+        zero rows for missing categories. Ordered by total DESC, category
+        ASC for deterministic tie-breaking.
+
+    Opens its own connection via get_db() and closes it before returning.
+    """
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT category, COALESCE(SUM(amount), 0.0) AS total "
+            "FROM expenses WHERE user_id = ? "
+            "GROUP BY category "
+            "ORDER BY total DESC, category ASC",
+            (user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
