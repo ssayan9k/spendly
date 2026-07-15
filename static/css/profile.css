@@ -308,6 +308,9 @@
 
 @media (max-width: 700px) {
     .profile-stats { grid-template-columns: 1fr; }
+    .profile-filter-form { flex-direction: column; align-items: stretch; }
+    .profile-filter-form input[type="date"] { width: 100%; }
+    .profile-filter-form .btn-submit { width: 100%; }
 }
 
 @media (max-width: 600px) {
@@ -317,4 +320,103 @@
         gap: 1.5rem;
     }
     .profile-header-meta { text-align: left; }
+    .profile-filter-pills { flex-wrap: wrap; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Filter bar (Spec 06)                                                */
+/* ------------------------------------------------------------------ */
+/* Sits between the user header and the stats row. All colors come     */
+/* from :root tokens in style.css — no new hex values are introduced.  */
+
+.profile-filter-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.25rem 1.5rem;
+}
+
+.profile-filter-pills {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.profile-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--paper-warm);
+    color: var(--ink-soft);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.profile-filter-pill:hover {
+    background: var(--border-soft);
+    color: var(--ink);
+}
+
+.profile-filter-pill--active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+}
+
+.profile-filter-pill--active:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.profile-filter-form {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.profile-filter-form input[type="date"] {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    transition: border-color 0.15s;
+}
+
+.profile-filter-form input[type="date"]:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+/* The Apply button reuses the global .btn-submit (style.css:505). */
+
+.profile-filter-flash {
+    padding: 0.6rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: var(--danger-light);
+    color: var(--danger);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    border: 1px solid var(--danger-light);
+}
+
+/* Visually-hidden helper for the date-input labels (a11y). */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }

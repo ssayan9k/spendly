@@ -22,6 +22,31 @@
       </div>
     </header>
 
+    <!-- 1b. Date filter bar (Spec 06) -->
+    <section class="profile-card profile-filter-bar" aria-label="Date range filter">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="profile-filter-flash" role="alert">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="profile-filter-pills">
+        {% for p in preset_links %}
+          <a href="{{ p.url }}"
+             class="profile-filter-pill {% if p.is_active %}profile-filter-pill--active{% endif %}"
+             {% if p.is_active %}aria-current="page"{% endif %}>{{ p.label }}</a>
+        {% endfor %}
+      </div>
+
+      <form method="get" action="{{ url_for('profile') }}" class="profile-filter-form">
+        <label class="visually-hidden" for="date_from">Start date</label>
+        <input type="date" id="date_from" name="date_from" value="{{ date_from_str }}">
+        <label class="visually-hidden" for="date_to">End date</label>
+        <input type="date" id="date_to" name="date_to" value="{{ date_to_str }}">
+        <button type="submit" class="btn-submit">Apply</button>
+      </form>
+    </section>
+
     <!-- 2. Summary stats row -->
     <section class="profile-stats" aria-label="Summary statistics">
       {% for stat in stats %}

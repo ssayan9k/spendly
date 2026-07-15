@@ -1,6 +1,7 @@
 import sqlite3
+from datetime import date, datetime
 
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import (
@@ -183,20 +184,45 @@ def profile():
     member_since = user["created_at"].split(" ")[0]  # "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DD"
 
     # ------------------------------------------------------------------ #
+    # Date filter (Spec 06). Read & validate the optional date_from and #
+    # date_to query params; pass them to the three query helpers below.  #
+    # Preset links and the active highlight are computed from the same  #
+    # helpers used to render the filter bar in the template.             #
+    # ------------------------------------------------------------------ #
+    today = date.today()
+    date_from = _parse_iso_date(request.args.get("date_from"))
+    date_to = _parse_iso_date(request.args.get("date_to"))
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        flash("Start date must be before end date.")
+        date_from = None
+        date_to = None
+
+    active_preset = _active_preset(date_from, date_to, today)
+    preset_links = _build_preset_links(today, date_from, date_to)
+
+    # ------------------------------------------------------------------ #
     # Real DB-driven data (Spec 05). Each section is built by a helper    #
     # in app.py that wraps a query in database/db.py. Three subagents     #
     # own those helpers in disjoint zones below; do NOT edit these lines. #
     # ------------------------------------------------------------------ #
     # >>> SUBAGENT_1_STATS_ZONE_START
-    profile_stats = _format_stats(get_expense_stats(user_id))
+    profile_stats = _format_stats(get_expense_stats(user_id, date_from, date_to))
     # >>> SUBAGENT_1_STATS_ZONE_END
 
     # >>> SUBAGENT_2_TRANSACTIONS_ZONE_START
-    profile_transactions = _format_transactions(get_recent_expenses(user_id))
+    profile_transactions = _format_transactions(
+        get_recent_expenses(user_id, date_from=date_from, date_to=date_to)
+    )
     # >>> SUBAGENT_2_TRANSACTIONS_ZONE_END
 
     # >>> SUBAGENT_3_CATEGORIES_ZONE_START
-    profile_categories = _format_categories(get_category_totals(user_id))
+    profile_categories = _format_categories(
+        get_category_totals(user_id, date_from, date_to)
+    )
     # >>> SUBAGENT_3_CATEGORIES_ZONE_END
 
     # Avatar initials: first letter of the first two words of the name,
@@ -214,6 +240,10 @@ def profile():
         stats=profile_stats,
         transactions=profile_transactions,
         categories=profile_categories,
+        active_preset=active_preset,
+        preset_links=preset_links,
+        date_from_str=date_from.isoformat() if date_from else "",
+        date_to_str=date_to.isoformat() if date_to else "",
     )
 
 
@@ -314,6 +344,127 @@ def _format_categories(rows):
         {"name": category, "total": f"₹{totals_by_category.get(category, 0.0):,.2f}"}
         for category in CATEGORIES
     ]
+
+
+# ------------------------------------------------------------------ #
+# Date-filter helpers (Spec 06)                                       #
+# Pure-Python: parse, preset math, and active-state detection.       #
+# All SQL stays in database/db.py.                                   #
+# ------------------------------------------------------------------ #
+
+def _first_of_months_ago(today, n):
+    """Return the first day of the month `n` calendar months before `today`.
+
+    Always returns a date with ``day == 1``. Handles year wrap by computing
+    the absolute month offset, normalising into [1, 12], and adjusting the
+    year. Used by the "Last N Months" presets so the lower bound is a
+    stable month boundary rather than a moving day-of-month.
+    """
+    total_month = today.year * 12 + (today.month - 1) - n
+    new_year, new_month0 = divmod(total_month, 12)
+    return date(new_year, new_month0 + 1, 1)
+
+
+def _preset_range(name, today):
+    """Return the (date_from, date_to) range for a preset name, or None for "all_time".
+
+    Preset names:
+        "this_month"   -> (first of current month, today)
+        "last_3_months" -> (first of 2 months back, today) — 3 calendar months
+                            inclusive of the current month.
+        "last_6_months" -> (first of 5 months back, today) — 6 calendar months
+                            inclusive of the current month.
+        "all_time"      -> None (caller passes (None, None) to the query helpers).
+
+    Returns a 2-tuple of ``datetime.date`` objects, or None for "all_time".
+    Unknown names raise ValueError so a typo in the preset list fails loudly.
+    """
+    if name == "this_month":
+        return (today.replace(day=1), today)
+    if name == "last_3_months":
+        return (_first_of_months_ago(today, 2), today)
+    if name == "last_6_months":
+        return (_first_of_months_ago(today, 5), today)
+    if name == "all_time":
+        return None
+    raise ValueError(f"Unknown preset: {name!r}")
+
+
+def _parse_iso_date(value):
+    """Parse a ``YYYY-MM-DD`` query-string value into a date, or None on bad input.
+
+    Returns None for None, an empty string, or any ValueError from
+    ``datetime.strptime``. Per the spec, malformed input is treated as
+    "absent" so the route silently falls back to the unfiltered view.
+    """
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _active_preset(date_from, date_to, today):
+    """Return the key of the preset that matches the current range, or "custom"/"all_time".
+
+    Exact-match against the four preset ranges (re-derived here from
+    `_preset_range` so the comparison is deterministic). If both bounds
+    are None, returns "all_time". If no preset matches, returns "custom".
+    """
+    if date_from is None and date_to is None:
+        return "all_time"
+    for key in ("this_month", "last_3_months", "last_6_months"):
+        preset_from, preset_to = _preset_range(key, today)
+        if date_from == preset_from and date_to == preset_to:
+            return key
+    return "custom"
+
+
+def _build_preset_links(today, active_date_from, active_date_to):
+    """Return the ordered list of preset link dicts for the filter bar.
+
+    Each entry: ``{"key": str, "label": str, "url": str, "is_active": bool}``.
+    The "all_time" entry passes no query params (clean ``/profile`` URL);
+    the others include ``date_from`` and ``date_to`` via ``url_for``.
+    Order is the display order: This Month, Last 3 Months, Last 6 Months,
+    All Time.
+    """
+    active = _active_preset(active_date_from, active_date_to, today)
+    ranges = {
+        "this_month": _preset_range("this_month", today),
+        "last_3_months": _preset_range("last_3_months", today),
+        "last_6_months": _preset_range("last_6_months", today),
+    }
+    links = []
+    for key, label in (
+        ("this_month", "This Month"),
+        ("last_3_months", "Last 3 Months"),
+        ("last_6_months", "Last 6 Months"),
+    ):
+        d_from, d_to = ranges[key]
+        links.append(
+            {
+                "key": key,
+                "label": label,
+                "url": url_for(
+                    "profile",
+                    date_from=d_from.isoformat(),
+                    date_to=d_to.isoformat(),
+                ),
+                "is_active": active == key,
+            }
+        )
+    # All Time -> no query params (clean URL), always last in the row.
+    links.append(
+        {
+            "key": "all_time",
+            "label": "All Time",
+            "url": url_for("profile"),
+            "is_active": active == "all_time",
+        }
+    )
+    return links
 
 
 

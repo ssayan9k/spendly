@@ -190,62 +190,109 @@ def get_user_by_id(user_id):
 
 
 # === AGENT_1_DB ===
-def get_expense_stats(user_id):
+def get_expense_stats(user_id, date_from=None, date_to=None):
     """Aggregate total spent, transaction count, and top category for a user.
+
+    Optional date-range filter: when both `date_from` and `date_to` are
+    provided (ISO ``"YYYY-MM-DD"`` strings), results are restricted to
+    expenses with ``date BETWEEN date_from AND date_to``. Passing only one
+    bound is treated as "no filter" — the contract is both-or-none, so the
+    helper stays simple and the caller never sees a half-applied range.
+    With both bounds ``None`` the generated SQL and param tuple are
+    identical to the pre-filter behaviour (no regression for the
+    unfiltered case).
 
     Returns a sqlite3.Row with keys:
         - total_spent: float (sum of amount, or 0.0 if no expenses)
         - transaction_count: int (COUNT(*), or 0)
-        - top_category: str or None (category with highest SUM(amount);
-          ties broken alphabetically via ORDER BY total DESC, category ASC;
-          None when the user has zero expenses)
+        - top_category: str or None (category with highest SUM(amount)
+          within the active range; ties broken alphabetically via
+          ORDER BY total DESC, category ASC; None when the user has zero
+          expenses in the range)
+
+    The correlated subquery that produces ``top_category`` receives the
+    same date filter as the outer query, so the "Top category" stat
+    always agrees with the "Total spent" stat.
 
     Opens its own connection via get_db() and closes it before returning.
     """
     conn = get_db()
     try:
-        row = conn.execute(
+        if date_from is not None and date_to is not None:
+            sql = """
+                SELECT
+                    COALESCE(SUM(amount), 0.0) AS total_spent,
+                    COUNT(*)                    AS transaction_count,
+                    (
+                        SELECT category
+                        FROM expenses
+                        WHERE user_id = ? AND date BETWEEN ? AND ?
+                        GROUP BY category
+                        ORDER BY SUM(amount) DESC, category ASC
+                        LIMIT 1
+                    ) AS top_category
+                FROM expenses
+                WHERE user_id = ? AND date BETWEEN ? AND ?
             """
-            SELECT
-                COALESCE(SUM(amount), 0.0) AS total_spent,
-                COUNT(*)                    AS transaction_count,
-                (
-                    SELECT category
-                    FROM expenses
-                    WHERE user_id = ?
-                    GROUP BY category
-                    ORDER BY SUM(amount) DESC, category ASC
-                    LIMIT 1
-                ) AS top_category
-            FROM expenses
-            WHERE user_id = ?
-            """,
-            (user_id, user_id),
-        ).fetchone()
+            params = (user_id, date_from, date_to, user_id, date_from, date_to)
+        else:
+            sql = """
+                SELECT
+                    COALESCE(SUM(amount), 0.0) AS total_spent,
+                    COUNT(*)                    AS transaction_count,
+                    (
+                        SELECT category
+                        FROM expenses
+                        WHERE user_id = ?
+                        GROUP BY category
+                        ORDER BY SUM(amount) DESC, category ASC
+                        LIMIT 1
+                    ) AS top_category
+                FROM expenses
+                WHERE user_id = ?
+            """
+            params = (user_id, user_id)
+        row = conn.execute(sql, params).fetchone()
         return row
     finally:
         conn.close()
 
 
 # === AGENT_2_DB ===
-def get_recent_expenses(user_id, limit=8):
-    """Return the user's `limit` most recent expenses.
+def get_recent_expenses(user_id, limit=8, date_from=None, date_to=None):
+    """Return the user's `limit` most recent expenses, optionally within a date range.
+
+    When both `date_from` and `date_to` are provided (ISO ``"YYYY-MM-DD"``
+    strings), results are restricted to expenses with
+    ``date BETWEEN date_from AND date_to``. Passing only one bound is
+    treated as "no filter" — see ``get_expense_stats`` for the rationale.
+    With both bounds ``None`` the generated SQL and param tuple are
+    identical to the pre-filter behaviour.
 
     Returns:
         list[sqlite3.Row] with columns id, amount, category, date, description,
         ordered by date DESC, id DESC (most recent first). Returns an empty
-        list (not None) when the user has no expenses.
+        list (not None) when the user has no matching expenses.
 
     Opens its own connection via get_db() and closes it before returning.
     """
     conn = get_db()
     try:
-        rows = conn.execute(
-            "SELECT id, amount, category, date, description "
-            "FROM expenses WHERE user_id = ? "
-            "ORDER BY date DESC, id DESC LIMIT ?",
-            (user_id, limit),
-        ).fetchall()
+        if date_from is not None and date_to is not None:
+            sql = (
+                "SELECT id, amount, category, date, description "
+                "FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? "
+                "ORDER BY date DESC, id DESC LIMIT ?"
+            )
+            params = (user_id, date_from, date_to, limit)
+        else:
+            sql = (
+                "SELECT id, amount, category, date, description "
+                "FROM expenses WHERE user_id = ? "
+                "ORDER BY date DESC, id DESC LIMIT ?"
+            )
+            params = (user_id, limit)
+        rows = conn.execute(sql, params).fetchall()
         return list(rows)
     finally:
         conn.close()
@@ -254,28 +301,45 @@ def get_recent_expenses(user_id, limit=8):
 # === AGENT_3_DB ===
 
 
-def get_category_totals(user_id):
-    """Return per-category spend for a user, ordered for deterministic display.
+def get_category_totals(user_id, date_from=None, date_to=None):
+    """Return per-category spend for a user within an optional date range.
+
+    When both `date_from` and `date_to` are provided (ISO ``"YYYY-MM-DD"``
+    strings), results are restricted to expenses with
+    ``date BETWEEN date_from AND date_to``. Passing only one bound is
+    treated as "no filter" — see ``get_expense_stats`` for the rationale.
+    With both bounds ``None`` the generated SQL and param tuple are
+    identical to the pre-filter behaviour.
 
     Returns:
         list[sqlite3.Row] with columns (category, total) where total is
-        SUM(amount) for that category. Categories with no expenses for
-        the user are NOT included in the result — the caller is
-        responsible for merging with the CATEGORIES constant to render
-        zero rows for missing categories. Ordered by total DESC, category
-        ASC for deterministic tie-breaking.
+        SUM(amount) for that category within the range. Categories with
+        no matching expenses are NOT included — the caller is responsible
+        for merging with the CATEGORIES constant to render zero rows for
+        missing categories. Ordered by total DESC, category ASC for
+        deterministic tie-breaking.
 
     Opens its own connection via get_db() and closes it before returning.
     """
     conn = get_db()
     try:
-        return conn.execute(
-            "SELECT category, COALESCE(SUM(amount), 0.0) AS total "
-            "FROM expenses WHERE user_id = ? "
-            "GROUP BY category "
-            "ORDER BY total DESC, category ASC",
-            (user_id,),
-        ).fetchall()
+        if date_from is not None and date_to is not None:
+            sql = (
+                "SELECT category, COALESCE(SUM(amount), 0.0) AS total "
+                "FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? "
+                "GROUP BY category "
+                "ORDER BY total DESC, category ASC"
+            )
+            params = (user_id, date_from, date_to)
+        else:
+            sql = (
+                "SELECT category, COALESCE(SUM(amount), 0.0) AS total "
+                "FROM expenses WHERE user_id = ? "
+                "GROUP BY category "
+                "ORDER BY total DESC, category ASC"
+            )
+            params = (user_id,)
+        return conn.execute(sql, params).fetchall()
     finally:
         conn.close()
 
