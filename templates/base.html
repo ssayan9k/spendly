@@ -21,12 +21,13 @@
             </a>
             <div class="nav-links">
                 {% if session.user_id %}
-                    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                    <a href="{{ url_for('profile') }}">Profile</a>
+                    <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}nav-link--active{% endif %}">Dashboard</a>
+                    <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}nav-link--active{% endif %}">Profile</a>
+                    <a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}nav-link--active{% endif %}">Analytics</a>
                     <a href="{{ url_for('logout') }}" class="nav-cta">Log out</a>
                 {% else %}
-                    <a href="{{ url_for('login') }}">Sign in</a>
-                    <a href="{{ url_for('register') }}" class="nav-cta">Get started</a>
+                    <a href="{{ url_for('login') }}" class="{% if request.endpoint == 'login' %}nav-link--active{% endif %}">Sign in</a>
+                    <a href="{{ url_for('register') }}" class="nav-cta {% if request.endpoint == 'register' %}nav-link--active{% endif %}">Get started</a>
                 {% endif %}
             </div>
         </div>

@@ -262,6 +262,15 @@ def delete_expense(id):
     return "Delete expense — coming in Step 9"
 
 
+@app.route("/analytics")
+def analytics():
+    # Check if user is logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    return render_template("analytics.html")
+
+
 # ------------------------------------------------------------------ #
 # Profile helpers (Spec 05)                                            #
 # One helper per page section, owned by one subagent each.             #
