@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__sqlite__describe_table",
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__plugin_figma_figma__get_metadata",
+      "Bash(curl -s http://localhost:5001/analytics)",
+      "Bash(curl -s http://localhost:5001/)",
+      "Bash(curl -b /tmp/cookie.jar -s http://localhost:5001/analytics)",
+      "Bash(curl -b /tmp/cookie.jar -s http://localhost:5001/)",
+      "mcp__plugin_figma_figma__get_screenshot",
+      "Bash(curl *)",
+      "mcp__github__search_repositories",
+      "Bash(python -m py_compile app.py)",
+      "Bash(grep -nE '#[0-9A-Fa-f]{3,6}' static/css/expense.css)",
+      "Bash(python -m py_compile app.py database/db.py)",
+      "Bash(python -m pytest tests/test_07-add-expense.py -v)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(git stash *)",
+      "Bash(python -m pytest tests/test_06-date-filter-profile.py -v)",
+      "Bash(python *)",
+      "Bash(grep -nE '#[0-9A-Fa-f]{3,6}' static/css/expense.css templates/add_expense.html)",
+      "Skill(code-review-feature)",
+      "Skill(test-feature)",
+      "Bash(git add *)"
+    ]
+  }
+}
