@@ -74,6 +74,7 @@
                 <th class="col-desc">Description</th>
                 <th class="col-cat">Category</th>
                 <th class="col-amt">Amount</th>
+                <th class="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -85,6 +86,9 @@
                   <span class="profile-badge profile-badge--{{ tx.category|lower }}">{{ tx.category }}</span>
                 </td>
                 <td class="col-amt">{{ tx.amount }}</td>
+                <td class="col-actions">
+                  <a href="{{ url_for('edit_expense', id=tx.id) }}" class="btn-link">Edit</a>
+                </td>
               </tr>
               {% endfor %}
             </tbody>

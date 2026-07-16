@@ -2,7 +2,7 @@
 import sqlite3
 from datetime import date, datetime
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for, abort
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import (
@@ -10,12 +10,14 @@ from database.db import (
     get_category_totals,
     get_db,
     get_expense_stats,
+    get_expense_by_id,
     get_recent_expenses,
     get_user_by_email,
     get_user_by_id,
     init_db,
     insert_expense,
     seed_db,
+    update_expense,
 )
 
 app = Flask(__name__)
@@ -336,9 +338,129 @@ def add_expense():
         )
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    # Check if user is logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    if request.method == "GET":
+        # Get the expense and verify ownership
+        expense = get_expense_by_id(id, user_id)
+        if expense is None:
+            # Either doesn't exist or doesn't belong to user
+            abort(404)
+
+        # Convert expense row to dict for template
+        expense_dict = dict(expense)
+        # Ensure description is empty string instead of None for display
+        if expense_dict['description'] is None:
+            expense_dict['description'] = ''
+
+        today = date.today()
+        return render_template(
+            "edit_expense.html",
+            expense=expense_dict,
+            categories=CATEGORIES,
+            today=today
+        )
+
+    # POST request - process form submission
+    # Get form data (same validation as add_expense)
+    amount = (request.form.get("amount") or "").strip()
+    category = (request.form.get("category") or "").strip()
+    date_str = (request.form.get("date") or "").strip()
+    description = (request.form.get("description") or "").strip()
+
+    # Validate input (same as add_expense)
+    error = None
+    if not amount:
+        error = "Please enter an amount."
+    else:
+        try:
+            amount_float = float(amount)
+            if amount_float <= 0:
+                error = "Amount must be greater than zero."
+        except ValueError:
+            error = "Please enter a valid number for amount."
+
+    if not error and not category:
+        error = "Please select a category."
+
+    if not error and category not in CATEGORIES:
+        error = "Please select a valid category."
+
+    if not error and not date_str:
+        error = "Please select a date."
+    else:
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            error = "Please enter a valid date (YYYY-MM-DD)."
+
+    if error:
+        # If there's an error, re-render the form with the error and previous values
+        today = date.today()
+        return render_template(
+            "edit_expense.html",
+            error=error,
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description,
+            today=today,
+            categories=CATEGORIES,
+            expense={
+                'amount': amount,
+                'category': category,
+                'date': date_str,
+                'description': description
+            }
+        )
+
+    # All valid, update the expense
+    try:
+        amount_float = float(amount)
+        # Description is None if empty string
+        desc_value = None if description == "" else description
+
+        success = update_expense(
+            id,
+            user_id,
+            amount_float,
+            category,
+            date_str,
+            desc_value
+        )
+
+        if success:
+            flash("Expense updated successfully!", "success")
+            return redirect(url_for("profile"))
+        else:
+            # This shouldn't happen if we got the expense in GET, but handle anyway
+            abort(404)
+
+    except sqlite3.Error:
+        # Handle database errors
+        today = date.today()
+        return render_template(
+            "edit_expense.html",
+            error="An error occurred while updating the expense. Please try again.",
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description,
+            today=today,
+            categories=CATEGORIES,
+            expense={
+                'amount': amount,
+                'category': category,
+                'date': date_str,
+                'description': description
+            }
+        )
 
 
 @app.route("/expenses/<int:id>/delete")
@@ -391,7 +513,8 @@ def _format_transactions(rows):
 
     Returns:
         list[dict] where each entry has keys:
-            {"date": "YYYY-MM-DD",
+            {"id": int,
+             "date": "YYYY-MM-DD",
              "description": str,  # "" when the row's description is None
              "category": str,
              "amount": "₹X,XXX.XX"}  # f"₹{amount:,.2f}"
@@ -402,6 +525,7 @@ def _format_transactions(rows):
     """
     return [
         {
+            "id": row["id"],
             "date": row["date"],
             "description": row["description"] if row["description"] is not None else "",
             "category": row["category"],
