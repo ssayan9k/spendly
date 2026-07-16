@@ -1,6 +1,7 @@
 
 import sqlite3
 from datetime import date, datetime
+from functools import wraps
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for, abort
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -18,12 +19,30 @@ from database.db import (
     insert_expense,
     seed_db,
     update_expense,
+    delete_expense,
 )
 
 app = Flask(__name__)
 # Required for `session` to sign cookies. Dev-only value; swap for a real
 # secret (env var, config file) before any non-local deploy.
 app.config["SECRET_KEY"] = "dev-secret-change-me"
+
+
+# ------------------------------------------------------------------ #
+# Auth decorator                                                       #
+# ------------------------------------------------------------------ #
+def login_required(view):
+    """Redirect anonymous users to the login page.
+
+    All routes that read or write a user's data go through this so the
+    "is the user signed in?" check is in one place.
+    """
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+    return wrapped
 
 
 # ------------------------------------------------------------------ #
@@ -91,21 +110,30 @@ def register():
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
-    conn = get_db()
-    try:
-        row = conn.execute(
-            "SELECT name FROM users WHERE id = ?", (session["user_id"],)
-        ).fetchone()
-    finally:
-        conn.close()
+    user_id = session.get("user_id")
+    if user_id is None:
+        return redirect(url_for("login"))
 
-    if row is None:
+    user = get_user_by_id(user_id)
+    if user is None:
         # Defensive: session points at a deleted user. Clear and redirect.
         session.clear()
         return redirect(url_for("register"))
 
-    return render_template("dashboard.html", name=row["name"])
+    # Dashboard is an at-a-glance view — unfiltered totals and the 5 most
+    # recent expenses. The same format helpers used by /profile are reused
+    # so the stats card pattern is consistent between the two pages.
+    stats = _format_stats(get_expense_stats(user_id))
+    recent = _format_transactions(get_recent_expenses(user_id, limit=5))
+
+    return render_template(
+        "dashboard.html",
+        name=user["name"],
+        stats=stats,
+        transactions=recent,
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -173,6 +201,7 @@ def logout():
 
 
 @app.route("/profile")
+@login_required
 def profile():
     user_id = session.get("user_id")
     if user_id is None:
@@ -252,98 +281,40 @@ def profile():
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])
+@login_required
 def add_expense():
-    # Check if user is logged in
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
     if request.method == "GET":
         # Show the form
-        today = date.today()
-        return render_template("add_expense.html", today=today, categories=CATEGORIES)
+        return _render_expense_form("add_expense.html")
 
     # POST request - process form submission
-    # Get form data
-    amount = (request.form.get("amount") or "").strip()
-    category = (request.form.get("category") or "").strip()
-    date_str = (request.form.get("date") or "").strip()
-    description = (request.form.get("description") or "").strip()
-
-    # Validate input
-    error = None
-    if not amount:
-        error = "Please enter an amount."
-    else:
-        try:
-            amount_float = float(amount)
-            if amount_float <= 0:
-                error = "Amount must be greater than zero."
-        except ValueError:
-            error = "Please enter a valid number for amount."
-
-    if not error and not category:
-        error = "Please select a category."
-
-    if not error and category not in CATEGORIES:
-        error = "Please select a valid category."
-
-    if not error and not date_str:
-        error = "Please select a date."
-    else:
-        try:
-            datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            error = "Please enter a valid date (YYYY-MM-DD)."
-
+    form = _read_expense_form()
+    error, amount_float = _validate_expense_form(form)
     if error:
-        # If there's an error, re-render the form with the error and previous values
-        today = date.today()
-        return render_template(
-            "add_expense.html",
-            error=error,
-            amount=amount,
-            category=category,
-            date=date_str,
-            description=description,
-            today=today,
-            categories=CATEGORIES,
-        )
+        return _render_expense_form("add_expense.html", error=error, form=form)
 
     # All valid, insert the expense
     try:
-        amount_float = float(amount)
-        # Description is None if empty string
-        desc_value = None if description == "" else description
         insert_expense(
             session["user_id"],
             amount_float,
-            category,
-            date_str,
-            desc_value
+            form["category"],
+            form["date"],
+            form["description"] or None,
         )
         flash("Expense added successfully!", "success")
         return redirect(url_for("profile"))
     except sqlite3.Error:
-        # Handle database errors (e.g. constraint violation, locked DB)
-        today = date.today()
-        return render_template(
+        return _render_expense_form(
             "add_expense.html",
             error="An error occurred while saving the expense. Please try again.",
-            amount=amount,
-            category=category,
-            date=date_str,
-            description=description,
-            today=today,
-            categories=CATEGORIES,
+            form=form,
         )
 
 
 @app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
+@login_required
 def edit_expense(id):
-    # Check if user is logged in
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
     user_id = session["user_id"]
 
     if request.method == "GET":
@@ -359,80 +330,36 @@ def edit_expense(id):
         if expense_dict['description'] is None:
             expense_dict['description'] = ''
 
-        today = date.today()
-        return render_template(
-            "edit_expense.html",
-            expense=expense_dict,
-            categories=CATEGORIES,
-            today=today
+        return _render_expense_form(
+            "edit_expense.html", expense=expense_dict,
         )
 
     # POST request - process form submission
-    # Get form data (same validation as add_expense)
-    amount = (request.form.get("amount") or "").strip()
-    category = (request.form.get("category") or "").strip()
-    date_str = (request.form.get("date") or "").strip()
-    description = (request.form.get("description") or "").strip()
-
-    # Validate input (same as add_expense)
-    error = None
-    if not amount:
-        error = "Please enter an amount."
-    else:
-        try:
-            amount_float = float(amount)
-            if amount_float <= 0:
-                error = "Amount must be greater than zero."
-        except ValueError:
-            error = "Please enter a valid number for amount."
-
-    if not error and not category:
-        error = "Please select a category."
-
-    if not error and category not in CATEGORIES:
-        error = "Please select a valid category."
-
-    if not error and not date_str:
-        error = "Please select a date."
-    else:
-        try:
-            datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            error = "Please enter a valid date (YYYY-MM-DD)."
-
+    form = _read_expense_form()
+    error, amount_float = _validate_expense_form(form)
     if error:
-        # If there's an error, re-render the form with the error and previous values
-        today = date.today()
-        return render_template(
+        # The edit form reads its values back from `expense.*`, so wrap the
+        # raw form dict to match that shape before re-rendering.
+        return _render_expense_form(
             "edit_expense.html",
             error=error,
-            amount=amount,
-            category=category,
-            date=date_str,
-            description=description,
-            today=today,
-            categories=CATEGORIES,
             expense={
-                'amount': amount,
-                'category': category,
-                'date': date_str,
-                'description': description
-            }
+                "amount": form["amount"],
+                "category": form["category"],
+                "date": form["date"],
+                "description": form["description"],
+            },
         )
 
     # All valid, update the expense
     try:
-        amount_float = float(amount)
-        # Description is None if empty string
-        desc_value = None if description == "" else description
-
         success = update_expense(
             id,
             user_id,
             amount_float,
-            category,
-            date_str,
-            desc_value
+            form["category"],
+            form["date"],
+            form["description"] or None,
         )
 
         if success:
@@ -443,37 +370,46 @@ def edit_expense(id):
             abort(404)
 
     except sqlite3.Error:
-        # Handle database errors
-        today = date.today()
-        return render_template(
+        return _render_expense_form(
             "edit_expense.html",
             error="An error occurred while updating the expense. Please try again.",
-            amount=amount,
-            category=category,
-            date=date_str,
-            description=description,
-            today=today,
-            categories=CATEGORIES,
             expense={
-                'amount': amount,
-                'category': category,
-                'date': date_str,
-                'description': description
-            }
+                "amount": form["amount"],
+                "category": form["category"],
+                "date": form["date"],
+                "description": form["description"],
+            },
         )
 
 
-@app.route("/expenses/<int:id>/delete")
-def delete_expense(id):
-    return "Delete expense — coming in Step 9"
+# NOTE: the route function is named `delete_expense_view` so it does NOT
+# shadow the imported `delete_expense` helper from `database.db` (line 21).
+# Without this rename, the `delete_expense(id, user_id)` call below would
+# recurse into the route itself and hit Python's recursion limit. The
+# explicit `endpoint="delete_expense"` keeps the Flask endpoint name (and
+# therefore every `url_for('delete_expense', id=...)` call site) unchanged.
+@app.route("/expenses/<int:id>/delete", methods=["POST"], endpoint="delete_expense")
+@login_required
+def delete_expense_view(id):
+    user_id = session["user_id"]
+
+    # Verify the expense exists and belongs to the user
+    expense = get_expense_by_id(id, user_id)
+    if expense is None:
+        abort(404)
+
+    # Delete the expense (resolves to the imported helper, not this route)
+    if delete_expense(id, user_id):
+        flash("Expense deleted successfully!", "success")
+    else:
+        flash("Failed to delete expense.", "error")
+
+    return redirect(url_for("profile"))
 
 
 @app.route("/analytics")
+@login_required
 def analytics():
-    # Check if user is logged in
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
     return render_template("analytics.html")
 
 
@@ -548,19 +484,112 @@ def _format_categories(rows):
 
     Returns:
         list[dict] where each entry has keys:
-            {"name": str,    # category name from CATEGORIES
-             "total": "₹X,XXX.XX"}  # f"₹{amount:,.2f}"
+            {"name":        str,            # category name from CATEGORIES
+             "total":       "₹X,XXX.XX",   # f"₹{amount:,.2f}"
+             "total_float": float,          # raw spend for math callers
+             "bar_pct":     "0.0"–"100.0"} # pre-rounded(1) string, ready to
+                                            # interpolate as `width: <bar_pct>%`
+                                            # on the bar fill span. Pre-computed
+                                            # here so the template never divides.
 
     Implementation: build a dict {category: total} from `rows` (coerce
-    missing amounts to 0.0), then iterate CATEGORIES in order and emit one
-    formatted dict per category. Length of returned list is always
+    missing amounts to 0.0), compute the max total for bar scaling (0.0 if
+    all categories are empty — that case yields "0.0" for every bar rather
+    than a ZeroDivisionError), then iterate CATEGORIES in order and emit
+    one formatted dict per category. Length of returned list is always
     len(CATEGORIES) (7).
     """
     totals_by_category = {row["category"]: float(row["total"] or 0.0) for row in rows}
+    max_total = max(totals_by_category.values(), default=0.0)
+
+    def _bar_pct(value):
+        if max_total <= 0.0:
+            return "0.0"
+        return f"{(value / max_total * 100):.1f}"
+
     return [
-        {"name": category, "total": f"₹{totals_by_category.get(category, 0.0):,.2f}"}
+        {
+            "name": category,
+            "total": f"₹{totals_by_category.get(category, 0.0):,.2f}",
+            "total_float": totals_by_category.get(category, 0.0),
+            "bar_pct": _bar_pct(totals_by_category.get(category, 0.0)),
+        }
         for category in CATEGORIES
     ]
+
+
+# ------------------------------------------------------------------ #
+# Expense form helpers (Specs 07 & 08)                                 #
+# Shared between add and edit routes — same fields, same rules.       #
+# ------------------------------------------------------------------ #
+
+def _read_expense_form():
+    """Read the four expense form fields, stripped of surrounding whitespace.
+
+    Returns a dict so callers can pass it around without re-typing keys.
+    Empty strings (not None) are returned for missing fields — that is the
+    shape the templates already render, so re-rendering after a validation
+    error Just Works.
+    """
+    return {
+        "amount": (request.form.get("amount") or "").strip(),
+        "category": (request.form.get("category") or "").strip(),
+        "date": (request.form.get("date") or "").strip(),
+        "description": (request.form.get("description") or "").strip(),
+    }
+
+
+def _validate_expense_form(form):
+    """Validate the shared expense form, returning (error_message, amount).
+
+    On success, ``error_message`` is ``None`` and ``amount`` is a positive
+    float. On failure, ``error_message`` describes the first problem (in
+    priority order: amount, category, date) and ``amount`` is ``None``.
+    The same messages are used by both add and edit so the UX is identical.
+    """
+    amount_str = form["amount"]
+    if not amount_str:
+        return "Please enter an amount.", None
+    try:
+        amount = float(amount_str)
+    except ValueError:
+        return "Please enter a valid number for amount.", None
+    if amount <= 0:
+        return "Amount must be greater than zero.", None
+
+    if not form["category"]:
+        return "Please select a category.", None
+    if form["category"] not in CATEGORIES:
+        return "Please select a valid category.", None
+
+    if not form["date"]:
+        return "Please select a date.", None
+    try:
+        datetime.strptime(form["date"], "%Y-%m-%d").date()
+    except ValueError:
+        return "Please enter a valid date (YYYY-MM-DD).", None
+
+    return None, amount
+
+
+def _render_expense_form(template_name, *, error=None, form=None, expense=None):
+    """Render the add/edit expense form with all the context it needs.
+
+    ``form`` is the dict from :func:`_read_expense_form` (used after a
+    validation error or a DB error to re-populate fields). ``expense`` is
+    the DB row (only used by the edit form on GET). Exactly one of
+    ``form`` or ``expense`` is non-None in practice.
+    """
+    ctx = {
+        "today": date.today(),
+        "categories": CATEGORIES,
+        "error": error,
+    }
+    if form is not None:
+        ctx.update(form)
+    if expense is not None:
+        ctx["expense"] = expense
+    return render_template(template_name, **ctx)
 
 
 # ------------------------------------------------------------------ #

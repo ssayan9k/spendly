@@ -12,6 +12,24 @@ from datetime import date
 
 from werkzeug.security import generate_password_hash
 
+
+# ------------------------------------------------------------------ #
+# Date adapter                                                         #
+# ------------------------------------------------------------------ #
+# Python 3.12 deprecated the implicit "convert date to datetime then   #
+# str(datetime)" adapter with a DeprecationWarning. The date column in  #
+# expenses stores ISO ``"YYYY-MM-DD"`` strings, so we register a tiny  #
+# adapter that turns any ``date`` parameter into the same format.      #
+# Without it, every query that takes a date (currently none — we pass  #
+# strings) would emit a warning, and any future call passing a ``date`` #
+# would silently produce a different string format.                   #
+def _adapt_date(value: date) -> str:
+    return value.isoformat()
+
+
+sqlite3.register_adapter(date, _adapt_date)
+
+
 # Fixed set of expense categories. Single source of truth for the 7 valid
 # values — used by the seed, the category breakdown, and (later) the add
 # / edit expense forms. Order matters: the breakdown list is rendered in
@@ -216,43 +234,27 @@ def get_expense_stats(user_id, date_from=None, date_to=None):
 
     Opens its own connection via get_db() and closes it before returning.
     """
+    where_clause, where_params, filter_clause, filter_params = _date_filter_parts(
+        user_id, date_from, date_to,
+    )
     conn = get_db()
     try:
-        if date_from is not None and date_to is not None:
-            sql = """
-                SELECT
-                    COALESCE(SUM(amount), 0.0) AS total_spent,
-                    COUNT(*)                    AS transaction_count,
-                    (
-                        SELECT category
-                        FROM expenses
-                        WHERE user_id = ? AND date BETWEEN ? AND ?
-                        GROUP BY category
-                        ORDER BY SUM(amount) DESC, category ASC
-                        LIMIT 1
-                    ) AS top_category
-                FROM expenses
-                WHERE user_id = ? AND date BETWEEN ? AND ?
-            """
-            params = (user_id, date_from, date_to, user_id, date_from, date_to)
-        else:
-            sql = """
-                SELECT
-                    COALESCE(SUM(amount), 0.0) AS total_spent,
-                    COUNT(*)                    AS transaction_count,
-                    (
-                        SELECT category
-                        FROM expenses
-                        WHERE user_id = ?
-                        GROUP BY category
-                        ORDER BY SUM(amount) DESC, category ASC
-                        LIMIT 1
-                    ) AS top_category
-                FROM expenses
-                WHERE user_id = ?
-            """
-            params = (user_id, user_id)
-        row = conn.execute(sql, params).fetchone()
+        sql = f"""
+            SELECT
+                COALESCE(SUM(amount), 0.0) AS total_spent,
+                COUNT(*)                    AS transaction_count,
+                (
+                    SELECT category
+                    FROM expenses
+                    WHERE {filter_clause}
+                    GROUP BY category
+                    ORDER BY SUM(amount) DESC, category ASC
+                    LIMIT 1
+                ) AS top_category
+            FROM expenses
+            WHERE {where_clause}
+        """
+        row = conn.execute(sql, where_params + filter_params).fetchone()
         return row
     finally:
         conn.close()
@@ -276,23 +278,15 @@ def get_recent_expenses(user_id, limit=8, date_from=None, date_to=None):
 
     Opens its own connection via get_db() and closes it before returning.
     """
+    where_clause, where_params, _, _ = _date_filter_parts(user_id, date_from, date_to)
     conn = get_db()
     try:
-        if date_from is not None and date_to is not None:
-            sql = (
-                "SELECT id, amount, category, date, description "
-                "FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? "
-                "ORDER BY date DESC, id DESC LIMIT ?"
-            )
-            params = (user_id, date_from, date_to, limit)
-        else:
-            sql = (
-                "SELECT id, amount, category, date, description "
-                "FROM expenses WHERE user_id = ? "
-                "ORDER BY date DESC, id DESC LIMIT ?"
-            )
-            params = (user_id, limit)
-        rows = conn.execute(sql, params).fetchall()
+        sql = (
+            f"SELECT id, amount, category, date, description "
+            f"FROM expenses WHERE {where_clause} "
+            f"ORDER BY date DESC, id DESC LIMIT ?"
+        )
+        rows = conn.execute(sql, where_params + (limit,)).fetchall()
         return list(rows)
     finally:
         conn.close()
@@ -319,27 +313,44 @@ def get_category_totals(user_id, date_from=None, date_to=None):
 
     Opens its own connection via get_db() and closes it before returning.
     """
+    where_clause, where_params, _, _ = _date_filter_parts(user_id, date_from, date_to)
     conn = get_db()
     try:
-        if date_from is not None and date_to is not None:
-            sql = (
-                "SELECT category, COALESCE(SUM(amount), 0.0) AS total "
-                "FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? "
-                "GROUP BY category "
-                "ORDER BY total DESC, category ASC"
-            )
-            params = (user_id, date_from, date_to)
-        else:
-            sql = (
-                "SELECT category, COALESCE(SUM(amount), 0.0) AS total "
-                "FROM expenses WHERE user_id = ? "
-                "GROUP BY category "
-                "ORDER BY total DESC, category ASC"
-            )
-            params = (user_id,)
-        return conn.execute(sql, params).fetchall()
+        sql = (
+            f"SELECT category, COALESCE(SUM(amount), 0.0) AS total "
+            f"FROM expenses WHERE {where_clause} "
+            f"GROUP BY category "
+            f"ORDER BY total DESC, category ASC"
+        )
+        return conn.execute(sql, where_params).fetchall()
     finally:
         conn.close()
+
+
+def _date_filter_parts(user_id, date_from, date_to):
+    """Build the SQL fragments and params shared by the three query helpers.
+
+    Returns a 4-tuple ``(where_clause, where_params, filter_clause,
+    filter_params)``:
+
+      - ``where_clause`` is the body of the outer ``WHERE`` (always
+        user-scoped, optionally date-bounded).
+      - ``where_params`` is the tuple of values for that clause.
+      - ``filter_clause`` is a *self-contained* predicate equivalent to
+        ``where_clause`` — used inside correlated subqueries where
+        rebinding the outer alias would not be valid.
+      - ``filter_params`` is the tuple of values for that clause.
+
+    Treating the filter as both-or-none (rather than one-bound) keeps the
+    SQL simple and prevents half-applied ranges from leaking into the UI.
+    """
+    if date_from is not None and date_to is not None:
+        where = "user_id = ? AND date BETWEEN ? AND ?"
+        params = (user_id, date_from, date_to)
+    else:
+        where = "user_id = ?"
+        params = (user_id,)
+    return where, params, where, params
 
 
 def insert_expense(user_id, amount, category, date, description):
@@ -426,5 +437,31 @@ def update_expense(expense_id, user_id, amount, category, date, description):
         )
         conn.commit()
         return cursor.rowcount > 0  # Returns True if row was updated
+    finally:
+        conn.close()
+
+
+def delete_expense(expense_id, user_id):
+    """
+    Delete an expense if it belongs to the specified user.
+
+    Args:
+        expense_id (int): The expense ID
+        user_id (int): The user ID for ownership verification
+
+    Returns:
+        bool: True if the expense was deleted, False otherwise
+    """
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            """
+            DELETE FROM expenses
+            WHERE id = ? AND user_id = ?
+            """,
+            (expense_id, user_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0  # Returns True if row was deleted
     finally:
         conn.close()

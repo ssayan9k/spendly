@@ -2,6 +2,10 @@
 
 {% block title %}Analytics — Spendly{% endblock %}
 
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
 {% block content %}
 <section class="hero">
 
@@ -83,13 +87,4 @@
     </div>
 
 </section>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    document.getElementById('notify-me-btn').addEventListener('click', function(e) {
-        e.preventDefault();
-        alert('Thanks for your interest! We\'ll notify you when Analytics is ready.');
-    });
-</script>
 {% endblock %}

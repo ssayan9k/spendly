@@ -3,9 +3,10 @@
 {% block title %}Spendly — Track Every Rupee{% endblock %}
 
 {% block head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{# base.html already preconnects to Google Fonts. Only the Inter family
+   used by the hero is loaded here. #}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -134,47 +135,5 @@
         </div>
     </div>
 </div>
-
-<script>
-(function () {
-    var modal = document.getElementById('video-modal');
-    var iframe = document.getElementById('video-modal-iframe');
-    var openBtn = document.getElementById('how-it-works-btn');
-    if (!modal || !iframe || !openBtn) return;
-
-    function openModal() {
-        if (!iframe.dataset.loaded) {
-            iframe.src = iframe.getAttribute('data-src') + '&autoplay=1';
-            iframe.dataset.loaded = '1';
-        }
-        modal.classList.add('is-open');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-        iframe.src = '';
-        delete iframe.dataset.loaded;
-    }
-
-    openBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        openModal();
-    });
-
-    modal.querySelectorAll('[data-close-modal]').forEach(function (el) {
-        el.addEventListener('click', closeModal);
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && modal.classList.contains('is-open')) {
-            closeModal();
-        }
-    });
-})();
-</script>
 
 {% endblock %}

@@ -1,18 +1,26 @@
 /* ------------------------------------------------------------------ */
-/* Profile page                                                        */
+/* Profile page — Clean SaaS dashboard                                 */
 /* ------------------------------------------------------------------ */
-/* Page-specific styles for /profile. Every selector is namespaced     */
-/* with `profile-` so nothing leaks into other pages.                  */
-/* All colors reference existing :root tokens from style.css —         */
-/* no new hex values are introduced.                                   */
+/* Every selector is namespaced with `profile-` so nothing leaks into  */
+/* other pages. All colors reference existing :root tokens from        */
+/* style.css — no new hex values are introduced.                       */
+/*                                                                      */
+/* Visual language:                                                     */
+/*   - Off-white page background, pure white cards                     */
+/*   - Subtle borders + soft shadows for elevation                     */
+/*   - Tight type, generous whitespace, capped at 1180px               */
+/*   - Blue accent (--accent) for primary actions and chart bars        */
+/*   - Sans-serif body, display font reserved for page-title only      */
+/* ------------------------------------------------------------------ */
 
 .profile-section {
     background: var(--paper);
-    padding: 3rem 2rem;
+    padding: 2.5rem 2rem 4rem;
+    min-height: calc(100vh - 60px - 100px);
 }
 
 .profile-inner {
-    max-width: 960px;
+    max-width: 1180px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -27,43 +35,69 @@
     background: var(--paper-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 2rem;
+    padding: 1.75rem;
+}
+
+.profile-card--elevated {
+    box-shadow: var(--shadow-sm);
 }
 
 /* ------------------------------------------------------------------ */
-/* Section 1 — User info card (header)                                 */
+/* 1. Hero header                                                      */
 /* ------------------------------------------------------------------ */
 
-.profile-header {
+.profile-hero {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
+    padding: 1.5rem 0 0.5rem;
+}
+
+.profile-hero-text {
+    min-width: 0;
+}
+
+.profile-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
 }
 
 .profile-title {
-    font-family: var(--font-display);
-    font-size: 2.25rem;
-    line-height: 1.1;
+    font-family: var(--font-body);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
     color: var(--ink);
+    margin: 0;
 }
 
 .profile-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--ink-muted);
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
 }
 
-.profile-header-user {
+.profile-hero-card {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1rem;
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1.25rem 0.75rem 0.75rem;
+    box-shadow: var(--shadow-xs);
     flex-shrink: 0;
 }
 
 .profile-avatar {
-    width: 64px;
-    height: 64px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: var(--accent);
     color: var(--paper);
@@ -72,52 +106,66 @@
     justify-content: center;
     font-family: var(--font-body);
     font-weight: 600;
-    font-size: 1.25rem;
+    font-size: 0.95rem;
     letter-spacing: 0.04em;
 }
 
-.profile-header-meta {
-    text-align: right;
+.profile-hero-meta {
+    text-align: left;
+    min-width: 0;
 }
 
 .profile-name {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--ink);
-    margin-bottom: 0.15rem;
+    margin: 0;
+    line-height: 1.3;
 }
 
 .profile-email {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: var(--ink-muted);
+    margin: 0.1rem 0 0;
+    line-height: 1.3;
 }
 
 .profile-since {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--ink-faint);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-top: 0.4rem;
+    margin: 0.2rem 0 0;
 }
 
 /* ------------------------------------------------------------------ */
-/* Section 2 — Summary stats row                                       */
+/* 2. Top action band — stats + filter side-by-side                    */
 /* ------------------------------------------------------------------ */
+
+.profile-band {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 1.5rem;
+    align-items: stretch;
+}
 
 .profile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 .profile-stat {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 96px;
 }
 
 .profile-stat-label {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--ink-muted);
@@ -125,241 +173,59 @@
 }
 
 .profile-stat-value {
-    font-size: 1.75rem;
-    font-weight: 600;
+    font-size: 1.85rem;
+    font-weight: 700;
     color: var(--ink);
     font-family: var(--font-body);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
 }
 
 /* ------------------------------------------------------------------ */
-/* Section 3 — Transaction history + Category breakdown (grid)         */
+/* Filter bar (Spec 06) — now sits to the right of the stats          */
 /* ------------------------------------------------------------------ */
-
-.profile-grid {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 1.5rem;
-    align-items: start;
-}
-
-.profile-card-title {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    color: var(--ink);
-    margin-bottom: 0.25rem;
-}
-
-.profile-card-subtitle {
-    font-size: 0.85rem;
-    color: var(--ink-muted);
-    margin-bottom: 1.5rem;
-}
-
-/* ------------------------------------------------------------------ */
-/* Transaction history table                                           */
-/* ------------------------------------------------------------------ */
-
-.profile-table-wrap {
-    overflow-x: auto;
-}
-
-.profile-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-}
-
-.profile-table thead th {
-    text-align: left;
-    font-weight: 500;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--ink-muted);
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.profile-table tbody td {
-    padding: 0.85rem 0;
-    border-bottom: 1px solid var(--border-soft);
-    vertical-align: middle;
-}
-
-.profile-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.col-date {
-    color: var(--ink-faint);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    width: 110px;
-}
-
-.col-desc {
-    color: var(--ink);
-    font-weight: 500;
-}
-
-.col-cat {
-    width: 140px;
-}
-
-.col-amt {
-    text-align: right;
-    font-weight: 500;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-/* ------------------------------------------------------------------ */
-/* Category badges                                                     */
-/* ------------------------------------------------------------------ */
-
-.profile-badge {
-    display: inline-block;
-    padding: 0.2rem 0.625rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    background: var(--accent-light);
-    color: var(--accent);
-    text-transform: capitalize;
-}
-
-.profile-badge--food {
-    background: var(--accent-light);
-    color: var(--accent);
-}
-
-.profile-badge--transport {
-    background: var(--accent-2-light);
-    color: var(--accent-2);
-}
-
-.profile-badge--bills {
-    background: var(--paper-warm);
-    color: var(--ink-soft);
-}
-
-.profile-badge--health {
-    background: var(--danger-light);
-    color: var(--danger);
-}
-
-.profile-badge--entertainment {
-    background: var(--paper-warm);
-    color: var(--accent-2);
-}
-
-.profile-badge--shopping {
-    background: var(--accent-light);
-    color: var(--ink-soft);
-}
-
-.profile-badge--other {
-    background: var(--border-soft);
-    color: var(--ink-muted);
-}
-
-/* ------------------------------------------------------------------ */
-/* Category breakdown list                                             */
-/* ------------------------------------------------------------------ */
-
-.profile-category-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.profile-category-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.85rem 0;
-    border-bottom: 1px solid var(--border-soft);
-}
-
-.profile-category-row:last-child {
-    border-bottom: none;
-}
-
-.profile-category-name {
-    flex: 0 0 auto;
-}
-
-.profile-category-total {
-    font-weight: 500;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    font-size: 0.95rem;
-}
-
-/* ------------------------------------------------------------------ */
-/* Responsive                                                          */
-/* ------------------------------------------------------------------ */
-
-@media (max-width: 900px) {
-    .profile-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 700px) {
-    .profile-stats { grid-template-columns: 1fr; }
-    .profile-filter-form { flex-direction: column; align-items: stretch; }
-    .profile-filter-form input[type="date"] { width: 100%; }
-    .profile-filter-form .btn-submit { width: 100%; }
-}
-
-@media (max-width: 600px) {
-    .profile-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.5rem;
-    }
-    .profile-header-meta { text-align: left; }
-    .profile-filter-pills { flex-wrap: wrap; }
-}
-
-/* ------------------------------------------------------------------ */
-/* Filter bar (Spec 06)                                                */
-/* ------------------------------------------------------------------ */
-/* Sits between the user header and the stats row. All colors come     */
-/* from :root tokens in style.css — no new hex values are introduced.  */
 
 .profile-filter-bar {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem;
+}
+
+.profile-filter-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    font-weight: 500;
+    margin: 0;
 }
 
 .profile-filter-pills {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
 }
 
 .profile-filter-pill {
     display: inline-flex;
     align-items: center;
-    padding: 0.4rem 0.9rem;
+    padding: 0.4rem 0.85rem;
     border: 1px solid var(--border);
     border-radius: 999px;
-    background: var(--paper-warm);
+    background: var(--paper-card);
     color: var(--ink-soft);
     font-family: var(--font-body);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 500;
     text-decoration: none;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .profile-filter-pill:hover {
-    background: var(--border-soft);
+    background: var(--paper-warm);
     color: var(--ink);
+    border-color: var(--ink-faint);
 }
 
 .profile-filter-pill--active {
@@ -375,36 +241,51 @@
 
 .profile-filter-form {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
     align-items: center;
     flex-wrap: wrap;
 }
 
 .profile-filter-form input[type="date"] {
-    padding: 0.5rem 0.7rem;
+    flex: 1 1 130px;
+    min-width: 0;
+    padding: 0.5rem 0.65rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    background: var(--paper);
+    background: var(--paper-card);
     color: var(--ink);
     font-family: var(--font-body);
-    font-size: 0.9rem;
-    transition: border-color 0.15s;
+    font-size: 0.85rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .profile-filter-form input[type="date"]:focus {
     border-color: var(--accent);
     outline: none;
+    box-shadow: 0 0 0 3px var(--accent-light);
 }
 
-/* The Apply button reuses the global .btn-submit (style.css:505). */
+.profile-filter-sep {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.profile-filter-apply {
+    flex: 0 0 auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    margin-top: 0;
+    border-radius: var(--radius-sm);
+}
 
 .profile-filter-flash {
-    padding: 0.6rem 0.9rem;
+    padding: 0.6rem 0.85rem;
     border-radius: var(--radius-sm);
     background: var(--danger-light);
     color: var(--danger);
     font-family: var(--font-body);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     border: 1px solid var(--danger-light);
 }
 
@@ -419,4 +300,282 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Main grid — transaction history + category breakdown             */
+/* ------------------------------------------------------------------ */
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.profile-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-card-title {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.profile-card-subtitle {
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    margin: 0.2rem 0 0;
+}
+
+.profile-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.profile-card-cta-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Transaction history table                                           */
+/* ------------------------------------------------------------------ */
+
+.profile-table-wrap {
+    overflow-x: auto;
+    margin: 0 -0.25rem;
+}
+
+.profile-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.profile-table thead th {
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--paper-warm);
+}
+
+.profile-table thead th:first-child {
+    border-top-left-radius: var(--radius-sm);
+    border-bottom-left-radius: 0;
+}
+
+.profile-table thead th:last-child {
+    border-top-right-radius: var(--radius-sm);
+}
+
+.profile-table tbody td {
+    padding: 0.9rem 0.75rem;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+}
+
+.profile-table tbody tr {
+    transition: background 0.12s;
+}
+
+.profile-table tbody tr:hover {
+    background: var(--paper-warm);
+}
+
+.profile-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.col-date {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    width: 110px;
+    font-size: 0.82rem;
+}
+
+.col-desc {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.col-cat {
+    width: 130px;
+}
+
+.col-amt {
+    text-align: right;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.col-actions {
+    text-align: right;
+    width: 180px;
+    white-space: nowrap;
+}
+
+.col-actions .btn-link,
+.col-actions form {
+    display: inline-flex;
+    margin: 0;
+    vertical-align: middle;
+}
+
+.col-actions .btn-link + form { margin-left: 0.4rem; }
+
+.profile-empty {
+    text-align: center;
+    color: var(--ink-muted);
+    padding: 2.5rem 1rem !important;
+    font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Category badges — clean pill design                                 */
+/* ------------------------------------------------------------------ */
+
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-transform: capitalize;
+    background: var(--accent-light);
+    color: var(--accent);
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.profile-badge--food          { background: var(--accent-light); color: var(--accent); }
+.profile-badge--transport     { background: var(--accent-2-light); color: var(--accent-2); }
+.profile-badge--bills         { background: var(--paper-warm);   color: var(--ink-soft); }
+.profile-badge--health        { background: var(--danger-light); color: var(--danger); }
+.profile-badge--entertainment { background: var(--paper-warm);   color: var(--accent-2); }
+.profile-badge--shopping      { background: var(--accent-light); color: var(--ink-soft); }
+.profile-badge--other         { background: var(--border-soft);  color: var(--ink-muted); }
+
+/* ------------------------------------------------------------------ */
+/* Category breakdown — bar chart                                      */
+/* ------------------------------------------------------------------ */
+
+.profile-category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.profile-category-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 90px;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.profile-category-row:last-child {
+    border-bottom: none;
+}
+
+.profile-category-name {
+    min-width: 0;
+}
+
+.profile-category-bar {
+    height: 8px;
+    background: var(--border-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.profile-category-bar-fill {
+    display: block;
+    height: 100%;
+    width: var(--bar-pct, 0%);
+    background: var(--accent);
+    border-radius: inherit;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-category-total {
+    text-align: right;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 1024px) {
+    .profile-band { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+    .profile-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+    .profile-stats { grid-template-columns: 1fr; }
+    .profile-filter-form { flex-direction: column; align-items: stretch; }
+    .profile-filter-form input[type="date"] { width: 100%; }
+    .profile-filter-form .btn-submit { width: 100%; }
+    .profile-filter-sep { display: none; }
+}
+
+@media (max-width: 600px) {
+    .profile-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+    }
+    .profile-hero-card { width: 100%; }
+    .profile-title { font-size: 1.85rem; }
+    .profile-filter-pills { flex-wrap: wrap; }
+    .profile-card-header { flex-direction: column; align-items: stretch; }
+    .profile-card-cta { align-self: flex-start; }
+    .profile-category-row {
+        grid-template-columns: 1fr;
+        gap: 0.4rem;
+    }
+    .profile-category-total { text-align: left; }
 }

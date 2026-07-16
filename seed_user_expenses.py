@@ -8,8 +8,6 @@ import random
 import sys
 from datetime import date, timedelta
 
-from werkzeug.security import generate_password_hash  # noqa: F401  (kept for parity with db.py)
-
 # Make the project root importable so we can use the same get_db() helper.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
