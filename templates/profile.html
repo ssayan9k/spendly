@@ -6,15 +6,19 @@
 <section class="profile-section">
   <div class="profile-inner">
 
-    <!-- 1. User info card -->
-    <header class="profile-card profile-header">
-      <div class="profile-header-text">
-        <h1 class="profile-title">Your profile</h1>
-        <p class="profile-subtitle">Account overview for {{ name }}</p>
+    <!-- ============================================================== -->
+    <!-- 1. HERO HEADER                                                  -->
+    <!-- Big greeting + compact identity strip on the right              -->
+    <!-- ============================================================== -->
+    <header class="profile-hero">
+      <div class="profile-hero-text">
+        <p class="profile-eyebrow">Account overview</p>
+        <h1 class="profile-title">Good to see you, {{ name.split()[0] }}.</h1>
+        <p class="profile-subtitle">Here's a snapshot of your spending activity.</p>
       </div>
-      <div class="profile-header-user">
+      <div class="profile-hero-card">
         <div class="profile-avatar">{{ avatar_initials }}</div>
-        <div class="profile-header-meta">
+        <div class="profile-hero-meta">
           <p class="profile-name">{{ name }}</p>
           <p class="profile-email">{{ email }}</p>
           <p class="profile-since">Member since {{ member_since }}</p>
@@ -22,50 +26,66 @@
       </div>
     </header>
 
-    <!-- 1b. Date filter bar (Spec 06) -->
-    <section class="profile-card profile-filter-bar" aria-label="Date range filter">
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="profile-filter-flash" role="alert">{{ messages[0] }}</div>
-        {% endif %}
-      {% endwith %}
+    <!-- ============================================================== -->
+    <!-- 2. STATS + FILTER (top action band)                             -->
+    <!-- ============================================================== -->
+    <section class="profile-band" aria-label="Quick stats and date filter">
 
-      <div class="profile-filter-pills">
-        {% for p in preset_links %}
-          <a href="{{ p.url }}"
-             class="profile-filter-pill {% if p.is_active %}profile-filter-pill--active{% endif %}"
-             {% if p.is_active %}aria-current="page"{% endif %}>{{ p.label }}</a>
+      <div class="profile-stats" aria-label="Summary statistics">
+        {% for stat in stats %}
+        <div class="profile-card profile-stat">
+          <p class="profile-stat-label">{{ stat.label }}</p>
+          <p class="profile-stat-value">{{ stat.value }}</p>
+        </div>
         {% endfor %}
       </div>
 
-      <form method="get" action="{{ url_for('profile') }}" class="profile-filter-form">
-        <label class="visually-hidden" for="date_from">Start date</label>
-        <input type="date" id="date_from" name="date_from" value="{{ date_from_str }}">
-        <label class="visually-hidden" for="date_to">End date</label>
-        <input type="date" id="date_to" name="date_to" value="{{ date_to_str }}">
-        <button type="submit" class="btn-submit">Apply</button>
-      </form>
+      <aside class="profile-card profile-filter-bar" aria-label="Date range filter">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="profile-filter-flash" role="alert">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
+
+        <p class="profile-filter-title">Time period</p>
+
+        <div class="profile-filter-pills">
+          {% for p in preset_links %}
+          <a href="{{ p.url }}"
+             class="profile-filter-pill {% if p.is_active %}profile-filter-pill--active{% endif %}"
+             {% if p.is_active %}aria-current="page"{% endif %}>{{ p.label }}</a>
+          {% endfor %}
+        </div>
+
+        <form method="get" action="{{ url_for('profile') }}" class="profile-filter-form">
+          <label class="visually-hidden" for="date_from">Start date</label>
+          <input type="date" id="date_from" name="date_from" value="{{ date_from_str }}">
+          <span class="profile-filter-sep">→</span>
+          <label class="visually-hidden" for="date_to">End date</label>
+          <input type="date" id="date_to" name="date_to" value="{{ date_to_str }}">
+          <button type="submit" class="btn-submit profile-filter-apply">Apply</button>
+        </form>
+      </aside>
+
     </section>
 
-    <!-- 2. Summary stats row -->
-    <section class="profile-stats" aria-label="Summary statistics">
-      {% for stat in stats %}
-      <div class="profile-card profile-stat">
-        <p class="profile-stat-label">{{ stat.label }}</p>
-        <p class="profile-stat-value">{{ stat.value }}</p>
-      </div>
-      {% endfor %}
-    </section>
-
-    <!-- 3. Transaction history + Category breakdown -->
+    <!-- ============================================================== -->
+    <!-- 3. TRANSACTION HISTORY + CATEGORY BREAKDOWN                     -->
+    <!-- ============================================================== -->
     <section class="profile-grid">
 
-      <div class="profile-card">
+      <!-- Transaction history -->
+      <div class="profile-card profile-card--elevated">
         <div class="profile-card-header">
-          <h2 class="profile-card-title">Transaction history</h2>
-          <a href="{{ url_for('add_expense') }}" class="btn-primary">Add Expense</a>
+          <div>
+            <h2 class="profile-card-title">Transaction history</h2>
+            <p class="profile-card-subtitle">Your most recent expenses</p>
+          </div>
+          <a href="{{ url_for('add_expense') }}" class="btn-primary profile-card-cta">
+            <span class="profile-card-cta-icon">+</span> Add expense
+          </a>
         </div>
-        <p class="profile-card-subtitle">Your most recent expenses</p>
+
         <div class="profile-table-wrap">
           <table class="profile-table">
             <thead>
@@ -74,21 +94,30 @@
                 <th class="col-desc">Description</th>
                 <th class="col-cat">Category</th>
                 <th class="col-amt">Amount</th>
-                <th class="col-actions">Actions</th>
+                <th class="col-actions"><span class="visually-hidden">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {% for tx in transactions %}
               <tr>
                 <td class="col-date">{{ tx.date }}</td>
-                <td class="col-desc">{{ tx.description }}</td>
+                <td class="col-desc">{{ tx.description or '—' }}</td>
                 <td class="col-cat">
                   <span class="profile-badge profile-badge--{{ tx.category|lower }}">{{ tx.category }}</span>
                 </td>
                 <td class="col-amt">{{ tx.amount }}</td>
                 <td class="col-actions">
-                  <a href="{{ url_for('edit_expense', id=tx.id) }}" class="btn-link">Edit</a>
+                  <a href="{{ url_for('edit_expense', id=tx.id) }}" class="btn-link btn-link-edit">Edit</a>
+                  <form method="POST" action="{{ url_for('delete_expense', id=tx.id) }}"
+                        class="col-actions-form"
+                        onsubmit="return confirm('Are you sure you want to delete this expense?');">
+                    <button type="submit" class="btn-link btn-delete">Delete</button>
+                  </form>
                 </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="profile-empty">No expenses in this period.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -96,16 +125,25 @@
         </div>
       </div>
 
-      <div class="profile-card">
-        <h2 class="profile-card-title">Category breakdown</h2>
-        <p class="profile-card-subtitle">Where your money is going</p>
+      <!-- Category breakdown -->
+      <div class="profile-card profile-card--elevated">
+        <div class="profile-card-header">
+          <div>
+            <h2 class="profile-card-title">Category breakdown</h2>
+            <p class="profile-card-subtitle">Where your money is going</p>
+          </div>
+        </div>
+
         <ul class="profile-category-list">
           {% for cat in categories %}
-          <li class="profile-category-row">
-            <span class="profile-category-name">
+          <li class="profile-category-row" style="--bar-pct: {{ cat.bar_pct }}%;">
+            <div class="profile-category-name">
               <span class="profile-badge profile-badge--{{ cat.name|lower }}">{{ cat.name }}</span>
-            </span>
-            <span class="profile-category-total">{{ cat.total }}</span>
+            </div>
+            <div class="profile-category-bar" aria-hidden="true">
+              <span class="profile-category-bar-fill"></span>
+            </div>
+            <div class="profile-category-total">{{ cat.total }}</div>
           </li>
           {% endfor %}
         </ul>

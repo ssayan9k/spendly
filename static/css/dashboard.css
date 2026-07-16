@@ -1,0 +1,273 @@
+/* ------------------------------------------------------------------ */
+/* Dashboard page                                                      */
+/* ------------------------------------------------------------------ */
+/* Page-specific styles for /dashboard. Every selector is namespaced  */
+/* with `dashboard-` so nothing leaks into or out of other pages.      */
+/*                                                                     */
+/* IMPORTANT: do NOT use `profile-*` classes here even though          */
+/* profile.css is loaded globally — the dashboard should remain        */
+/* independent so a future change to profile.css can't break it.       */
+/*                                                                     */
+/* All colors reference existing :root tokens from style.css —         */
+/* no new hex values are introduced.                                   */
+
+.dashboard-section {
+    background: var(--paper);
+    padding: 3rem 2rem;
+}
+
+.dashboard-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Card primitive                                                      */
+/* ------------------------------------------------------------------ */
+
+.dashboard-card {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* 1. Welcome header                                                   */
+/* ------------------------------------------------------------------ */
+
+.dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.dashboard-header-text {
+    min-width: 0;
+}
+
+.dashboard-title {
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    line-height: 1.1;
+    color: var(--ink);
+}
+
+.dashboard-subtitle {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    margin-top: 0.5rem;
+}
+
+.dashboard-header-user {
+    flex-shrink: 0;
+}
+
+.dashboard-logout {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--paper-warm);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.dashboard-logout:hover {
+    color: var(--ink);
+    border-color: var(--ink-muted);
+    background: var(--paper-card);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Summary stats row                                                */
+/* ------------------------------------------------------------------ */
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.dashboard-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dashboard-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    font-weight: 500;
+}
+
+.dashboard-stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--ink);
+    font-family: var(--font-body);
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Quick actions                                                    */
+/* ------------------------------------------------------------------ */
+
+.dashboard-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Reuses the global .btn-primary defined in style.css */
+
+/* ------------------------------------------------------------------ */
+/* 4. Recent expenses card                                             */
+/* ------------------------------------------------------------------ */
+
+.dashboard-recent {
+    padding: 2rem;
+}
+
+.dashboard-recent-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.dashboard-recent-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--ink);
+}
+
+.dashboard-recent-all {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.dashboard-recent-all:hover {
+    color: var(--ink);
+    text-decoration: underline;
+}
+
+.dashboard-recent-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dashboard-recent-row {
+    display: grid;
+    grid-template-columns: 110px 140px 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.dashboard-recent-row:last-child {
+    border-bottom: none;
+}
+
+.dashboard-recent-date {
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.dashboard-recent-desc {
+    color: var(--ink);
+    font-weight: 500;
+    font-size: 0.95rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-recent-amount {
+    text-align: right;
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.dashboard-recent-empty {
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+    padding: 1rem 0 0.25rem;
+    margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Category badges (dashboard variants — mirror profile.css palette)   */
+/* ------------------------------------------------------------------ */
+
+.dashboard-badge {
+    display: inline-block;
+    padding: 0.2rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: capitalize;
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.dashboard-badge--food          { background: var(--accent-light); color: var(--accent); }
+.dashboard-badge--transport     { background: var(--accent-2-light); color: var(--accent-2); }
+.dashboard-badge--bills         { background: var(--paper-warm);   color: var(--ink-soft); }
+.dashboard-badge--health        { background: var(--danger-light); color: var(--danger); }
+.dashboard-badge--entertainment { background: var(--paper-warm);   color: var(--accent-2); }
+.dashboard-badge--shopping      { background: var(--accent-light); color: var(--ink-soft); }
+.dashboard-badge--other         { background: var(--border-soft);  color: var(--ink-muted); }
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+    .dashboard-stats { grid-template-columns: 1fr; }
+    .dashboard-recent-row {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "date amount"
+            "badge badge"
+            "desc desc";
+        row-gap: 0.4rem;
+    }
+    .dashboard-recent-date  { grid-area: date; }
+    .dashboard-recent-amount { grid-area: amount; }
+    .dashboard-recent-cat   { grid-area: badge; }
+    .dashboard-recent-desc  { grid-area: desc; white-space: normal; }
+}
+
+@media (max-width: 600px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+    }
+    .dashboard-actions { flex-direction: column; align-items: stretch; }
+    .dashboard-actions .btn-primary { text-align: center; }
+}
