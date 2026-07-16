@@ -299,8 +299,6 @@ def get_recent_expenses(user_id, limit=8, date_from=None, date_to=None):
 
 
 # === AGENT_3_DB ===
-
-
 def get_category_totals(user_id, date_from=None, date_to=None):
     """Return per-category spend for a user within an optional date range.
 
@@ -372,3 +370,61 @@ def insert_expense(user_id, amount, category, date, description):
     finally:
         conn.close()
 
+
+def get_expense_by_id(expense_id, user_id):
+    """
+    Get a single expense by ID, only if it belongs to the specified user.
+
+    Args:
+        expense_id (int): The expense ID
+        user_id (int): The user ID for ownership verification
+
+    Returns:
+        sqlite3.Row: The expense row if found and owned by user, None otherwise
+    """
+    conn = get_db()
+    try:
+        return conn.execute(
+            """
+            SELECT id, amount, category, date, description
+            FROM expenses
+            WHERE id = ? AND user_id = ?
+            """,
+            (expense_id, user_id)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def update_expense(expense_id, user_id, amount, category, date, description):
+    """
+    Update an expense if it belongs to the specified user.
+
+    Args:
+        expense_id (int): The expense ID
+        user_id (int): The user ID for ownership verification
+        amount (float): Expense amount
+        category (str): Expense category (must be in CATEGORIES)
+        date (str): Date in YYYY-MM-DD format
+        description (str): Optional description
+
+    Returns:
+        bool: True if the expense was updated, False otherwise
+    """
+    conn = get_db()
+    try:
+        # Convert empty description to None for storage
+        desc_value = None if description == "" else description
+
+        cursor = conn.execute(
+            """
+            UPDATE expenses
+            SET amount = ?, category = ?, date = ?, description = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (amount, category, date, desc_value, expense_id, user_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0  # Returns True if row was updated
+    finally:
+        conn.close()
