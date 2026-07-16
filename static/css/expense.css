@@ -1,0 +1,169 @@
+/* ------------------------------------------------------------------ */
+/* Add Expense page                                                     */
+/* ------------------------------------------------------------------ */
+/* Page-specific styles for /expenses/add. Every selector is namespaced */
+/* with `expense-` so nothing leaks into other pages.                   */
+/* All colors reference existing :root tokens from style.css —         */
+/* no new hex values are introduced.                                   */
+
+.expense-section {
+    background: var(--paper);
+    padding: 3rem 2rem;
+    min-height: calc(100vh - 200px);
+}
+
+.expense-inner {
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Card                                                                 */
+/* ------------------------------------------------------------------ */
+
+.expense-card {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.expense-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.expense-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 1.1;
+    color: var(--ink);
+    margin: 0;
+}
+
+.expense-subtitle {
+    font-family: var(--font-body);
+    color: var(--ink-muted);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Flash messages                                                       */
+/* ------------------------------------------------------------------ */
+
+.expense-flash {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-family: var(--font-body);
+    margin-bottom: 0.25rem;
+}
+
+.expense-flash--success {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.expense-flash--error {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.expense-error {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-family: var(--font-body);
+    margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Form                                                                 */
+/* ------------------------------------------------------------------ */
+
+.expense-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.expense-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.expense-label {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+}
+
+.expense-input {
+    width: 100%;
+    padding: 0.6rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background: var(--paper-card);
+    color: var(--ink);
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+}
+
+.expense-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.expense-input::placeholder {
+    color: var(--ink-faint);
+}
+
+textarea.expense-input {
+    resize: vertical;
+    min-height: 4.5rem;
+    font-family: var(--font-body);
+}
+
+/* ------------------------------------------------------------------ */
+/* Actions                                                              */
+/* ------------------------------------------------------------------ */
+
+.expense-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.expense-link {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    text-decoration: none;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s ease;
+}
+
+.expense-link:hover {
+    color: var(--ink);
+}
+
+.expense-link--secondary {
+    color: var(--ink-muted);
+}

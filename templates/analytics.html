@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics — Spendly{% endblock %}
+
+{% block content %}
+<section class="hero">
+
+    <div class="hero-badge">
+        <span class="dot"></span>
+        Coming Soon
+    </div>
+
+    <h1 class="hero-title">
+        Analytics<br>
+        <span>Coming Soon</span>
+    </h1>
+
+    <p class="hero-subtitle">
+        Get powerful insights into your spending habits with our upcoming analytics feature.
+        Track trends, spot patterns, and make smarter financial decisions.
+    </p>
+
+    <div class="hero-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+        <a href="#" class="btn btn-secondary" id="notify-me-btn">Notify Me When Ready</a>
+    </div>
+
+    <div class="dashboard-card">
+
+        <div class="browser-dots">
+            <span class="red"></span>
+            <span class="yellow"></span>
+            <span class="green"></span>
+        </div>
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+                <p class="label">Spending Trends</p>
+                <h3>Coming Soon</h3>
+                <span class="muted">See how your spending changes over time</span>
+            </div>
+
+            <div class="stat-card">
+                <p class="label">Category Insights</p>
+                <h3>Coming Soon</h3>
+                <span class="muted">Understand where your money really goes</span>
+            </div>
+
+            <div class="stat-card">
+                <p class="label">Budget Forecasting</p>
+                <h3>Coming Soon</h3>
+                <span class="muted">Predict future expenses with confidence</span>
+            </div>
+
+        </div>
+
+        <div class="chart-card">
+
+            <div class="chart-row">
+                <span>Coming Soon</span>
+                <div class="progress">
+                    <div class="fill food" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="chart-row">
+                <span>Advanced Analytics</span>
+                <div class="progress">
+                    <div class="fill travel" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="chart-row">
+                <span>Custom Reports</span>
+                <div class="progress">
+                    <div class="fill bills" style="width: 0%;"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('notify-me-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('Thanks for your interest! We\'ll notify you when Analytics is ready.');
+    });
+</script>
+{% endblock %}

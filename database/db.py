@@ -343,3 +343,32 @@ def get_category_totals(user_id, date_from=None, date_to=None):
     finally:
         conn.close()
 
+
+def insert_expense(user_id, amount, category, date, description):
+    """
+    Insert a new expense for a user.
+
+    Args:
+        user_id (int): The user's ID
+        amount (float): Expense amount
+        category (str): Expense category (must be in CATEGORIES)
+        date (str): Date in YYYY-MM-DD format
+        description (str): Optional description
+
+    Returns:
+        int: The ID of the newly inserted expense
+    """
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            """
+            INSERT INTO expenses (user_id, amount, category, date, description)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, amount, category, date, description)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+

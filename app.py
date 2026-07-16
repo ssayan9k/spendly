@@ -1,3 +1,4 @@
+
 import sqlite3
 from datetime import date, datetime
 
@@ -13,6 +14,7 @@ from database.db import (
     get_user_by_email,
     get_user_by_id,
     init_db,
+    insert_expense,
     seed_db,
 )
 
@@ -247,9 +249,91 @@ def profile():
     )
 
 
-@app.route("/expenses/add")
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    # Check if user is logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "GET":
+        # Show the form
+        today = date.today()
+        return render_template("add_expense.html", today=today, categories=CATEGORIES)
+
+    # POST request - process form submission
+    # Get form data
+    amount = (request.form.get("amount") or "").strip()
+    category = (request.form.get("category") or "").strip()
+    date_str = (request.form.get("date") or "").strip()
+    description = (request.form.get("description") or "").strip()
+
+    # Validate input
+    error = None
+    if not amount:
+        error = "Please enter an amount."
+    else:
+        try:
+            amount_float = float(amount)
+            if amount_float <= 0:
+                error = "Amount must be greater than zero."
+        except ValueError:
+            error = "Please enter a valid number for amount."
+
+    if not error and not category:
+        error = "Please select a category."
+
+    if not error and category not in CATEGORIES:
+        error = "Please select a valid category."
+
+    if not error and not date_str:
+        error = "Please select a date."
+    else:
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            error = "Please enter a valid date (YYYY-MM-DD)."
+
+    if error:
+        # If there's an error, re-render the form with the error and previous values
+        today = date.today()
+        return render_template(
+            "add_expense.html",
+            error=error,
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description,
+            today=today,
+            categories=CATEGORIES,
+        )
+
+    # All valid, insert the expense
+    try:
+        amount_float = float(amount)
+        # Description is None if empty string
+        desc_value = None if description == "" else description
+        insert_expense(
+            session["user_id"],
+            amount_float,
+            category,
+            date_str,
+            desc_value
+        )
+        flash("Expense added successfully!", "success")
+        return redirect(url_for("profile"))
+    except sqlite3.Error:
+        # Handle database errors (e.g. constraint violation, locked DB)
+        today = date.today()
+        return render_template(
+            "add_expense.html",
+            error="An error occurred while saving the expense. Please try again.",
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description,
+            today=today,
+            categories=CATEGORIES,
+        )
 
 
 @app.route("/expenses/<int:id>/edit")
@@ -260,6 +344,15 @@ def edit_expense(id):
 @app.route("/expenses/<int:id>/delete")
 def delete_expense(id):
     return "Delete expense — coming in Step 9"
+
+
+@app.route("/analytics")
+def analytics():
+    # Check if user is logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    return render_template("analytics.html")
 
 
 # ------------------------------------------------------------------ #

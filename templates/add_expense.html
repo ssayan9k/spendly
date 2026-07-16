@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense — Spendly{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/expense.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="expense-section">
+  <div class="expense-inner">
+
+    <!-- Expense form card -->
+    <section class="expense-card">
+      <header class="expense-card-header">
+        <h1 class="expense-title">Add Expense</h1>
+        <p class="expense-subtitle">Record your latest expense</p>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="expense-flash expense-flash--{{ category }}" role="alert">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% if error %}
+        <div class="expense-error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('add_expense') }}" class="expense-form">
+        <div class="expense-form-group">
+          <label class="expense-label" for="amount">Amount (₹)</label>
+          <input
+            class="expense-input"
+            type="number"
+            id="amount"
+            name="amount"
+            step="0.01"
+            min="0.01"
+            value="{{ amount if amount is defined else '' }}"
+            autofocus
+            required
+          >
+        </div>
+
+        <div class="expense-form-group">
+          <label class="expense-label" for="category">Category</label>
+          <select class="expense-input" id="category" name="category" required>
+            <option value="" disabled {% if not category %}selected{% endif %}>Select a category</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="expense-form-group">
+          <label class="expense-label" for="date">Date</label>
+          <input
+            class="expense-input"
+            type="date"
+            id="date"
+            name="date"
+            value="{{ date if date is defined else today.isoformat() }}"
+            required
+          >
+        </div>
+
+        <div class="expense-form-group">
+          <label class="expense-label" for="description">Description (optional)</label>
+          <textarea
+            class="expense-input"
+            id="description"
+            name="description"
+            rows="3"
+            placeholder="Brief description (optional)"
+          >{{ description if description is defined else '' }}</textarea>
+        </div>
+
+        <div class="expense-form-actions">
+          <a href="{{ url_for('profile') }}" class="expense-link expense-link--secondary">Cancel</a>
+          <button type="submit" class="btn-submit">Save Expense</button>
+        </div>
+      </form>
+    </section>
+
+  </div>
+</section>
+{% endblock %}
